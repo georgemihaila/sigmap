@@ -1,16 +1,18 @@
 import {
   Badge,
   Button,
+  Card,
   Drawer,
-  Group,
   Select,
   Stack,
   Table,
   Text,
-  Title,
 } from '@mantine/core';
-import { useState } from 'react';
+import { IconPencil } from '@tabler/icons-react';
+import { useEffect, useState } from 'react';
 import { ConfigEditor, stateToConfig, toState } from '../components/ConfigEditor';
+import { PageHeader } from '../components/PageHeader';
+import { timeAgo } from '../lib/time';
 import {
   useApplyConfigMutation,
   useGetDeviceConfigQuery,
@@ -21,12 +23,23 @@ import {
 import { useSession } from '../store/session';
 import { ScanConfig } from '../generated/config_pb';
 
+function useNow(intervalMs: number): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+  return now;
+}
+
 function DeviceRow({
   device,
   sessionId,
+  now,
 }: {
   device: Device;
   sessionId: string | null;
+  now: number;
 }) {
   const { data: presets } = useListPresetsQuery();
   const [applyConfig] = useApplyConfigMutation();
@@ -37,7 +50,7 @@ function DeviceRow({
   );
 
   const lastSeen = device.lastHeartbeatAt ? new Date(device.lastHeartbeatAt) : null;
-  const stale = lastSeen ? Date.now() - lastSeen.getTime() > 60_000 : true;
+  const stale = lastSeen ? now - lastSeen.getTime() > 60_000 : true;
   const drift = !!sessionId && config?.pushState === 'Pending';
 
   const applyPreset = async (presetId: string | null) => {
@@ -50,14 +63,25 @@ function DeviceRow({
   return (
     <>
       <Table.Tr>
-        <Table.Td>{device.name}</Table.Td>
+        <Table.Td>
+          <Text fw={600}>{device.name}</Text>
+          <Text size="xs" c="dimmed">{device.platform || 'unknown platform'}</Text>
+        </Table.Td>
         <Table.Td>
           <Badge color={stale ? 'red' : device.status === 'Online' ? 'teal' : 'gray'}>
             {stale ? 'Offline' : device.status}
           </Badge>
         </Table.Td>
-        <Table.Td>{lastSeen ? lastSeen.toLocaleTimeString() : '—'}</Table.Td>
-        <Table.Td>{drift ? <Badge color="orange">config not acked</Badge> : <Badge color="green" variant="light">synced</Badge>}</Table.Td>
+        <Table.Td>
+          <Text size="sm">{timeAgo(device.lastHeartbeatAt, now)}</Text>
+        </Table.Td>
+        <Table.Td>
+          {drift ? (
+            <Badge color="orange">config not acked</Badge>
+          ) : (
+            <Badge color="green" variant="light">synced</Badge>
+          )}
+        </Table.Td>
         <Table.Td>
           <Select
             data={(presets ?? []).filter((p) => !p.isBuiltin).map((p) => ({ value: p.id, label: p.name }))}
@@ -69,8 +93,13 @@ function DeviceRow({
             aria-label={`Preset for ${device.name}`}
           />
         </Table.Td>
-        <Table.Td>
-          <Button size="compact-xs" variant="light" onClick={() => setOpenEditor(true)}>
+        <Table.Td ta="right">
+          <Button
+            size="compact-sm"
+            variant="light"
+            leftSection={<IconPencil size={14} />}
+            onClick={() => setOpenEditor(true)}
+          >
             Edit config
           </Button>
         </Table.Td>
@@ -112,39 +141,42 @@ function ConfigEditorShell({
 export function FleetPage() {
   const { data: devices } = useListDevicesQuery();
   const { activeSessionId } = useSession();
+  const now = useNow(30_000);
 
   return (
-    <Stack>
-      <Group justify="space-between">
-        <Title order={2}>Device fleet</Title>
-        <Text size="sm" c="dimmed">
-          {devices?.length ?? 0} devices · live status, config drift and preset switching
-        </Text>
-      </Group>
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Device</Table.Th>
-            <Table.Th>Status</Table.Th>
-            <Table.Th>Last heartbeat</Table.Th>
-            <Table.Th>Config</Table.Th>
-            <Table.Th>Preset</Table.Th>
-            <Table.Th />
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {devices?.map((d) => (
-            <DeviceRow key={d.id} device={d} sessionId={activeSessionId} />
-          ))}
-          {devices?.length === 0 && (
+    <>
+      <PageHeader
+        title="Device fleet"
+        subtitle={`${devices?.length ?? 0} devices · live status, config drift and preset switching`}
+      />
+      <Card p={0}>
+        <Table>
+          <Table.Thead>
             <Table.Tr>
-              <Table.Td colSpan={6}>
-                <Text c="dimmed">No devices paired yet. Scan a pairing QR to add one.</Text>
-              </Table.Td>
+              <Table.Th>Device</Table.Th>
+              <Table.Th>Status</Table.Th>
+              <Table.Th>Last heartbeat</Table.Th>
+              <Table.Th>Config</Table.Th>
+              <Table.Th>Preset</Table.Th>
+              <Table.Th ta="right" />
             </Table.Tr>
-          )}
-        </Table.Tbody>
-      </Table>
-    </Stack>
+          </Table.Thead>
+          <Table.Tbody>
+            {devices?.map((d) => (
+              <DeviceRow key={d.id} device={d} sessionId={activeSessionId} now={now} />
+            ))}
+            {devices?.length === 0 && (
+              <Table.Tr>
+                <Table.Td colSpan={6}>
+                  <Text c="dimmed" py="sm" ta="center">
+                    No devices paired yet. Scan a pairing QR to add one.
+                  </Text>
+                </Table.Td>
+              </Table.Tr>
+            )}
+          </Table.Tbody>
+        </Table>
+      </Card>
+    </>
   );
 }

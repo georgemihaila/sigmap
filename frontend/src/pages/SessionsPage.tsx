@@ -1,7 +1,7 @@
 import {
-  ActionIcon,
   Badge,
   Button,
+  Card,
   Divider,
   Group,
   Modal,
@@ -12,7 +12,9 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
+import { IconCrosshair, IconFileImport, IconPlus } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
+import { PageHeader } from '../components/PageHeader';
 import {
   useCompareSessionsQuery,
   useCreateSessionMutation,
@@ -21,10 +23,10 @@ import {
 } from '../store/api';
 import { useSession } from '../store/session';
 
-const STATUS_LABEL: Record<number, string> = {
-  0: 'Planned',
-  1: 'Active',
-  2: 'Archived',
+const STATUS: Record<number, { label: string; color: string }> = {
+  0: { label: 'Planned', color: 'blue' },
+  1: { label: 'Active', color: 'teal' },
+  2: { label: 'Archived', color: 'gray' },
 };
 
 export function SessionsPage() {
@@ -64,60 +66,91 @@ export function SessionsPage() {
   };
 
   return (
-    <Stack>
-      <Group justify="space-between">
-        <Title order={2}>Sessions</Title>
-        <Button onClick={() => setOpen(true)}>New session</Button>
-      </Group>
+    <>
+      <PageHeader
+        title="Sessions"
+        subtitle="Plan, run and archive wardriving campaigns."
+        actions={
+          <Button leftSection={<IconPlus size={16} />} onClick={() => setOpen(true)}>
+            New session
+          </Button>
+        }
+      />
 
       <Modal opened={open} onClose={() => setOpen(false)} title="New session">
         <Stack>
-          <TextInput label="Name" value={name} onChange={(e) => setName(e.currentTarget.value)} />
-          <Button onClick={submit} disabled={!name.trim()}>Create</Button>
+          <TextInput
+            label="Name"
+            placeholder="Summer drive 2026"
+            value={name}
+            onChange={(e) => setName(e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void submit();
+            }}
+            autoFocus
+          />
+          <Button onClick={submit} disabled={!name.trim()}>
+            Create
+          </Button>
         </Stack>
       </Modal>
 
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Name</Table.Th>
-            <Table.Th>Status</Table.Th>
-            <Table.Th>Created</Table.Th>
-            <Table.Th />
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {sessions?.map((s) => (
-            <Table.Tr key={s.id} style={s.id === activeSessionId ? { background: 'var(--mantine-color-blue-light)' } : undefined}>
-              <Table.Td>
-                <ActionIcon
-                  variant="subtle"
-                  onClick={() => setActiveSessionId(s.id)}
-                  aria-label={`Focus ${s.name}`}
-                >
-                  <Text fw={600}>{s.name}</Text>
-                </ActionIcon>
-              </Table.Td>
-              <Table.Td>
-                <Badge color={s.status === 2 ? 'gray' : 'blue'}>{STATUS_LABEL[s.status] ?? s.status}</Badge>
-              </Table.Td>
-              <Table.Td>{new Date(s.createdAt).toLocaleString()}</Table.Td>
-              <Table.Td>
-                <Button size="compact-xs" variant="light" onClick={() => setActiveSessionId(s.id)}>
-                  Focus
-                </Button>
-              </Table.Td>
-            </Table.Tr>
-          ))}
-          {!isLoading && sessions?.length === 0 && (
+      <Card p={0}>
+        <Table>
+          <Table.Thead>
             <Table.Tr>
-              <Table.Td colSpan={4}>
-                <Text c="dimmed">No sessions yet. Create one to start a campaign.</Text>
-              </Table.Td>
+              <Table.Th>Name</Table.Th>
+              <Table.Th>Status</Table.Th>
+              <Table.Th>Created</Table.Th>
+              <Table.Th ta="right" />
             </Table.Tr>
-          )}
-        </Table.Tbody>
-      </Table>
+          </Table.Thead>
+          <Table.Tbody>
+            {sessions?.map((s) => {
+              const st = STATUS[s.status] ?? { label: String(s.status), color: 'gray' };
+              return (
+                <Table.Tr
+                  key={s.id}
+                  style={
+                    s.id === activeSessionId
+                      ? { background: 'var(--mantine-color-teal-light)' }
+                      : undefined
+                  }
+                >
+                  <Table.Td>
+                    <Text fw={600}>{s.name}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge color={st.color} variant="light">
+                      {st.label}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>{new Date(s.createdAt).toLocaleString()}</Table.Td>
+                  <Table.Td ta="right">
+                    <Button
+                      size="compact-sm"
+                      variant={s.id === activeSessionId ? 'filled' : 'light'}
+                      leftSection={<IconCrosshair size={14} />}
+                      onClick={() => setActiveSessionId(s.id)}
+                    >
+                      Focus
+                    </Button>
+                  </Table.Td>
+                </Table.Tr>
+              );
+            })}
+            {!isLoading && sessions?.length === 0 && (
+              <Table.Tr>
+                <Table.Td colSpan={4}>
+                  <Text c="dimmed" py="sm" ta="center">
+                    No sessions yet. Create one to start a campaign.
+                  </Text>
+                </Table.Td>
+              </Table.Tr>
+            )}
+          </Table.Tbody>
+        </Table>
+      </Card>
 
       <Divider />
 
@@ -127,11 +160,11 @@ export function SessionsPage() {
           <Select data={sessionOptions} value={compareA} onChange={setCompareA} placeholder="Session A" searchable w={220} />
           <Select data={sessionOptions} value={compareB} onChange={setCompareB} placeholder="Session B" searchable w={220} />
           {comparison && (
-            <Text size="sm">
-              <Badge color="teal" variant="light">both: {comparison.inBoth}</Badge>{' '}
-              <Badge color="red" variant="light">only A: {comparison.onlyInA}</Badge>{' '}
+            <Group gap={6}>
+              <Badge color="teal" variant="light">both: {comparison.inBoth}</Badge>
+              <Badge color="red" variant="light">only A: {comparison.onlyInA}</Badge>
               <Badge color="blue" variant="light">only B: {comparison.onlyInB}</Badge>
-            </Text>
+            </Group>
           )}
         </Group>
 
@@ -144,7 +177,11 @@ export function SessionsPage() {
             searchable
             w={260}
           />
-          <Button variant="light" onClick={() => gpxInput.current?.click()}>
+          <Button
+            variant="light"
+            leftSection={<IconFileImport size={16} />}
+            onClick={() => gpxInput.current?.click()}
+          >
             Import GPX route
           </Button>
           <input
@@ -157,6 +194,6 @@ export function SessionsPage() {
           {gpxMessage && <Text size="sm" c="dimmed">{gpxMessage}</Text>}
         </Group>
       </Stack>
-    </Stack>
+    </>
   );
 }

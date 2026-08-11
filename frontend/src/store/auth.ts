@@ -12,6 +12,7 @@ export const authApi = createApi({
   endpoints: (builder) => ({
     me: builder.query<Me, void>({
       query: () => '/me',
+      providesTags: ['me'],
     }),
     login: builder.mutation<Me, { username: string; password: string }>({
       query: (body) => ({ url: '/login', method: 'POST', body }),

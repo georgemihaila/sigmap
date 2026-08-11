@@ -2,6 +2,7 @@ import {
   ActionIcon,
   Badge,
   Button,
+  Card,
   Group,
   Modal,
   Stack,
@@ -9,11 +10,13 @@ import {
   Text,
   TextInput,
   Textarea,
-  Title,
+  Tooltip,
 } from '@mantine/core';
+import { IconPlus, IconTrash, IconVersions, IconWorld } from '@tabler/icons-react';
 import { useState } from 'react';
 import { ConfigEditor, stateToConfig, toState } from '../components/ConfigEditor';
 import { ConfigDiffPreview } from '../components/ConfigDiffPreview';
+import { PageHeader } from '../components/PageHeader';
 import {
   useApplyConfigMutation,
   useCreatePresetMutation,
@@ -68,13 +71,18 @@ export function PresetsPage() {
   };
 
   return (
-    <Stack>
-      <Group justify="space-between">
-        <Title order={2}>Presets</Title>
-        <Button onClick={() => setCreating(true)}>New preset</Button>
-      </Group>
+    <>
+      <PageHeader
+        title="Presets"
+        subtitle="Reusable scan configurations applied to devices or the whole fleet."
+        actions={
+          <Button leftSection={<IconPlus size={16} />} onClick={() => setCreating(true)}>
+            New preset
+          </Button>
+        }
+      />
 
-      <Modal opened={creating} onClose={() => setCreating(false)} title="New preset">
+      <Modal opened={creating} onClose={() => setCreating(false)} title="New preset" size="lg">
         <Stack>
           <TextInput label="Name" value={name} onChange={(e) => setName(e.currentTarget.value)} />
           <Textarea label="Description" value={description} onChange={(e) => setDescription(e.currentTarget.value)} />
@@ -83,48 +91,75 @@ export function PresetsPage() {
         </Stack>
       </Modal>
 
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Name</Table.Th>
-            <Table.Th>Built-in</Table.Th>
-            <Table.Th>Updated</Table.Th>
-            <Table.Th />
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {presets?.map((p) => (
-            <Table.Tr key={p.id}>
-              <Table.Td>
-                <Text fw={500}>{p.name}</Text>
-                {p.description && <Text size="xs" c="dimmed">{p.description}</Text>}
-              </Table.Td>
-              <Table.Td>{p.isBuiltin ? <Badge color="blue">built-in</Badge> : <Badge color="gray" variant="light">user</Badge>}</Table.Td>
-              <Table.Td>{new Date(p.updatedAt).toLocaleString()}</Table.Td>
-              <Table.Td>
-                <Group gap="xs">
-                  <Button size="compact-xs" variant="light" onClick={() => applyToAll(p)} disabled={!activeSessionId}>
-                    Apply to fleet
-                  </Button>
-                  <Button
-                    size="compact-xs"
-                    variant="light"
-                    onClick={() => setDiffFor({ preset: p, deviceId: devices?.[0]?.id ?? '' })}
-                    disabled={!devices?.length}
-                  >
-                    Diff
-                  </Button>
-                  {!p.isBuiltin && (
-                    <ActionIcon color="red" variant="subtle" onClick={() => deletePreset(p.id)} aria-label={`Delete ${p.name}`}>
-                      ✕
-                    </ActionIcon>
-                  )}
-                </Group>
-              </Table.Td>
+      <Card p={0}>
+        <Table>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Name</Table.Th>
+              <Table.Th>Origin</Table.Th>
+              <Table.Th>Updated</Table.Th>
+              <Table.Th ta="right" />
             </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
+          </Table.Thead>
+          <Table.Tbody>
+            {presets?.map((p) => (
+              <Table.Tr key={p.id}>
+                <Table.Td>
+                  <Text fw={600}>{p.name}</Text>
+                  {p.description && <Text size="xs" c="dimmed">{p.description}</Text>}
+                </Table.Td>
+                <Table.Td>
+                  {p.isBuiltin ? <Badge color="blue">built-in</Badge> : <Badge color="gray" variant="light">user</Badge>}
+                </Table.Td>
+                <Table.Td>{new Date(p.updatedAt).toLocaleString()}</Table.Td>
+                <Table.Td>
+                  <Group gap="xs" justify="flex-end">
+                    <Button
+                      size="compact-sm"
+                      variant="light"
+                      leftSection={<IconWorld size={14} />}
+                      onClick={() => applyToAll(p)}
+                      disabled={!activeSessionId}
+                    >
+                      Apply to fleet
+                    </Button>
+                    <Button
+                      size="compact-sm"
+                      variant="light"
+                      leftSection={<IconVersions size={14} />}
+                      onClick={() => setDiffFor({ preset: p, deviceId: devices?.[0]?.id ?? '' })}
+                      disabled={!devices?.length}
+                    >
+                      Diff
+                    </Button>
+                    {!p.isBuiltin && (
+                      <Tooltip label={`Delete ${p.name}`}>
+                        <ActionIcon
+                          color="red"
+                          variant="subtle"
+                          onClick={() => deletePreset(p.id)}
+                          aria-label={`Delete ${p.name}`}
+                        >
+                          <IconTrash size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                    )}
+                  </Group>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+            {presets?.length === 0 && (
+              <Table.Tr>
+                <Table.Td colSpan={4}>
+                  <Text c="dimmed" py="sm" ta="center">
+                    No presets yet.
+                  </Text>
+                </Table.Td>
+              </Table.Tr>
+            )}
+          </Table.Tbody>
+        </Table>
+      </Card>
 
       <Modal
         opened={diffFor !== null}
@@ -143,6 +178,6 @@ export function PresetsPage() {
           />
         )}
       </Modal>
-    </Stack>
+    </>
   );
 }

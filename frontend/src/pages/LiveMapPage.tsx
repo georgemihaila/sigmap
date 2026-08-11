@@ -1,6 +1,8 @@
-import { Badge, Group, Select, Stack, Switch, Text, Title } from '@mantine/core';
+import { Badge, Group, Select, Switch } from '@mantine/core';
+import { IconMap2, IconRadar } from '@tabler/icons-react';
 import { useState } from 'react';
 import { LiveMap } from '../components/LiveMap';
+import { PageHeader } from '../components/PageHeader';
 import { useLiveStream } from '../hooks/useLiveStream';
 import { useGetCoverageQuery, useListSessionsQuery } from '../store/api';
 import { useAppSelector } from '../store/hooks';
@@ -18,35 +20,35 @@ export function LiveMapPage() {
   useLiveStream(activeSessionId);
 
   return (
-    <Stack gap="sm">
-      <Group justify="space-between">
-        <Title order={2}>Live map</Title>
-        <Group>
-          <Badge color={liveCount > 0 ? 'teal' : 'gray'} variant="light">
-            {liveCount} live devices
-          </Badge>
-          <Switch
-            label="Coverage heatmap"
-            checked={showCoverage}
-            onChange={(e) => setShowCoverage(e.currentTarget.checked)}
-          />
-          <Select
-            data={(sessions ?? []).map((s) => ({ value: s.id, label: s.name }))}
-            value={activeSessionId}
-            onChange={setActiveSessionId}
-            placeholder="Session (all if empty)"
-            clearable
-            searchable
-            w={260}
-            aria-label="Active session"
-          />
-        </Group>
-      </Group>
-      <Text size="sm" c="dimmed">
-        Live detections stream over gRPC-Web; colors = AP / Bluetooth / BLE / client.
-        Coverage shows the physical areas actually scanned in the selected session.
-      </Text>
+    <>
+      <PageHeader
+        title="Live map"
+        subtitle="Live detections stream over gRPC-Web; colors = AP / Bluetooth / BLE / client."
+        actions={
+          <Group gap="xs">
+            <Badge color={liveCount > 0 ? 'teal' : 'gray'} variant="light" leftSection={<IconRadar size={12} />}>
+              {liveCount} live devices
+            </Badge>
+            <Switch
+              label="Coverage heatmap"
+              checked={showCoverage}
+              onChange={(e) => setShowCoverage(e.currentTarget.checked)}
+            />
+            <Select
+              data={(sessions ?? []).map((s) => ({ value: s.id, label: s.name }))}
+              value={activeSessionId}
+              onChange={setActiveSessionId}
+              placeholder="Session (all if empty)"
+              clearable
+              searchable
+              w={240}
+              leftSection={<IconMap2 size={16} />}
+              aria-label="Active session"
+            />
+          </Group>
+        }
+      />
       <LiveMap coverage={showCoverage ? coverage?.points : undefined} />
-    </Stack>
+    </>
   );
 }

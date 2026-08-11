@@ -1,4 +1,4 @@
-import { Divider, Group, Stack, Text, Title } from '@mantine/core';
+import { Card, Group, Text } from '@mantine/core';
 import { CircleMarker, MapContainer, TileLayer, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAppSelector } from '../store/hooks';
@@ -12,6 +12,13 @@ const COLORS: Record<string, string> = {
   UNKNOWN: '#868e96',
 };
 
+const LEGEND: Array<{ key: string; label: string }> = [
+  { key: 'AP', label: 'AP' },
+  { key: 'BLUETOOTH', label: 'Bluetooth' },
+  { key: 'BT_LE', label: 'BLE' },
+  { key: 'CLIENT', label: 'Client' },
+];
+
 interface CoveragePoint {
   lat: number;
   lon: number;
@@ -23,15 +30,32 @@ export function LiveMap({ coverage }: { coverage?: CoveragePoint[] }) {
   const markers: MapPoint[] = Object.values(points);
 
   return (
-    <Stack gap="sm">
-      <Group justify="space-between">
-        <Title order={3}>Live map</Title>
+    <Card p={0} style={{ overflow: 'hidden' }}>
+      <Group justify="space-between" px="md" py="sm">
+        <Group gap="sm">
+          {LEGEND.map((l) => (
+            <Group key={l.key} gap={6}>
+              <span
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  background: COLORS[l.key],
+                  display: 'inline-block',
+                }}
+              />
+              <Text size="xs" c="dimmed">
+                {l.label}
+              </Text>
+            </Group>
+          ))}
+        </Group>
         <Text size="sm" c="dimmed">
-          {markers.length} devices · {batchCount} batches{coverage ? ` · ${coverage.length} coverage pts` : ''}
+          {markers.length} devices · {batchCount} batches
+          {coverage ? ` · ${coverage.length} coverage pts` : ''}
         </Text>
       </Group>
-      <Divider />
-      <div style={{ height: 'calc(100vh - 160px)' }}>
+      <div style={{ height: 'calc(100vh - 220px)', minHeight: 480 }}>
         <MapContainer
           center={[52.52, 13.405]}
           zoom={13}
@@ -65,6 +89,6 @@ export function LiveMap({ coverage }: { coverage?: CoveragePoint[] }) {
           ))}
         </MapContainer>
       </div>
-    </Stack>
+    </Card>
   );
 }
