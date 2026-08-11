@@ -1,0 +1,6 @@
+@Sigmap.Bff_HostAddress = http://localhost:5291
+
+GET {{Sigmap.Bff_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

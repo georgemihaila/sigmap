@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Shared with backend (net10.0) and scanner agent (net8.0, AOT-friendly). -->
+    <RootNamespace>Sigmap.Contracts</RootNamespace>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.29.3" />
+    <PackageReference Include="Grpc.Tools" Version="2.68.1" PrivateAssets="All" />
+    <PackageReference Include="Grpc.Core.Api" Version="2.67.0" />
+    <PackageReference Include="RabbitMQ.Client" Version="7.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Shared schemas: generated as plain messages. -->
+    <Protobuf Include="proto/*.proto" ProtoRoot="proto" GrpcServices="None" />
+    <!-- Streaming service: server base class consumed by the BFF. -->
+    <Protobuf Include="proto/live.proto" ProtoRoot="proto" GrpcServices="Server" />
+  </ItemGroup>
+
+</Project>

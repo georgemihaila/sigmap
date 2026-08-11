@@ -1,0 +1,6 @@
+@Sigmap.Backend.Api_HostAddress = http://localhost:5047
+
+GET {{Sigmap.Backend.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

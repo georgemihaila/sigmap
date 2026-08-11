@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/Sigmap.Backend.Api/Sigmap.Backend.Api.csproj" />
+    <Project Path="backend/Sigmap.Backend.Application/Sigmap.Backend.Application.csproj" />
+    <Project Path="backend/Sigmap.Backend.Domain/Sigmap.Backend.Domain.csproj" />
+    <Project Path="backend/Sigmap.Backend.Infrastructure/Sigmap.Backend.Infrastructure.csproj" />
+    <Project Path="backend/Sigmap.Backend.IntegrationTests/Sigmap.Backend.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/bff/">
+    <Project Path="bff/Sigmap.Bff/Sigmap.Bff.csproj" />
+  </Folder>
+  <Folder Name="/contracts/">
+    <Project Path="contracts/Sigmap.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/scanner/">
+    <Project Path="scanner/Sigmap.Scanner.Agent/Sigmap.Scanner.Agent.csproj" />
+    <Project Path="scanner/Sigmap.Scanner.Tests/Sigmap.Scanner.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package sigmap;
+
+option csharp_namespace = "Sigmap.Contracts.Proto";
+
+enum DeviceStatus {
+  DEVICE_STATUS_UNSPECIFIED = 0;
+  ONLINE = 1;
+  BUSY = 2;    // actively scanning
+  ERROR = 3;
+}
+
+message InterfaceStatus {
+  string name = 1;
+  uint32 current_channel = 2;
+  bool in_monitor_mode = 3;
+  bool enabled = 4;
+}
+
+// Scanner -> backend, emitted periodically (and on state changes).
+message Heartbeat {
+  string device_id = 1;
+  uint64 at_unix_ms = 2;
+  DeviceStatus status = 3;
+  repeated InterfaceStatus interfaces = 4;
+  // Battery percentage if reported by the platform.
+  optional int32 battery_pct = 5;
+  optional bool gps_fix = 6;
+  uint64 detections_buffered = 7;
+  uint64 detections_sent_total = 8;
+}

@@ -1,0 +1,21 @@
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Contracts first for layer caching.
+COPY contracts/ contracts/
+COPY backend/Sigmap.Backend.Api/Sigmap.Backend.Api.csproj backend/Sigmap.Backend.Api/
+COPY backend/Sigmap.Backend.Domain/Sigmap.Backend.Domain.csproj backend/Sigmap.Backend.Domain/
+COPY backend/Sigmap.Backend.Application/Sigmap.Backend.Application.csproj backend/Sigmap.Backend.Application/
+COPY backend/Sigmap.Backend.Infrastructure/Sigmap.Backend.Infrastructure.csproj backend/Sigmap.Backend.Infrastructure/
+RUN dotnet restore backend/Sigmap.Backend.Api/Sigmap.Backend.Api.csproj  
+
+COPY backend/ backend/
+RUN dotnet publish backend/Sigmap.Backend.Api/Sigmap.Backend.Api.csproj -c Release  -o /app/publish  
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "Sigmap.Backend.Api.dll"]

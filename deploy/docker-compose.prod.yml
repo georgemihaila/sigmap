@@ -1,0 +1,31 @@
+name: sigmap-prod
+
+# Production override: same services, prod-grade images/settings. Run with:
+#   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.prod.yml up -d --build
+
+services:
+  frontend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.frontend-prod
+    environment: {}
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - bff
+
+  backend-api:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+    restart: always
+
+  scanner-agent:
+    # Real monitor-mode scanning on a host with a wireless adapter:
+    # uncomment to switch from the simulator to live capture.
+    # network_mode: host
+    # cap_add: [NET_ADMIN, NET_RAW]
+    # devices:
+    #   - /dev/bus/usb/001:/dev/bus/usb/001   # wireless USB adapter passthrough
+    environment:
+      SCANNER__SOURCE_TYPE: simulator # switch to "wifi" for real capture
+    restart: always

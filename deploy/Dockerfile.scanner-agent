@@ -1,0 +1,19 @@
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY contracts/ contracts/
+COPY scanner/Sigmap.Scanner.Agent/Sigmap.Scanner.Agent.csproj scanner/Sigmap.Scanner.Agent/
+RUN dotnet restore scanner/Sigmap.Scanner.Agent/Sigmap.Scanner.Agent.csproj  
+
+COPY scanner/ scanner/
+RUN dotnet publish scanner/Sigmap.Scanner.Agent/Sigmap.Scanner.Agent.csproj -c Release  -o /app/publish  
+
+# Runtime: self-contained single-file keeps field deployment simple.
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+# Simulator mode needs no privileges. For real monitor-mode scanning on the
+# host, run with: network_mode: host + --cap-add=NET_ADMIN --cap-add=NET_RAW
+# and pass the wireless adapter through (does not work on a bridge network).
+ENTRYPOINT ["dotnet", "Sigmap.Scanner.Agent.dll"]

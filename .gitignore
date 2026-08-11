@@ -396,3 +396,36 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Sigmap: frontend
+frontend/node_modules/
+frontend/dist/
+
+# Sigmap: generated code (regenerated via make gen-proto)
+
+# Android
+android/.gradle/
+android/local.properties
+android/**/build/
+android/app/src/main/proto/
+android/app/build/
+
+# Sigmap: local config / secrets (see deploy/.env.example)
+.env
+.env.*
+!.env.example
+
+# Sigmap: scanner local runtime state
+device.id
+scanner-buffer.db
+scanner-buffer.db-journal
+nohup.out
+
+# Sigmap: test output
+TestResults/
+frontend/coverage/
+
+# Editors / tooling
+.vscode/
+.idea/
+android/.kotlin/
