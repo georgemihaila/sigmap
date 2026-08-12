@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDateTime, formatNumber } from '@/lib/time';
 import type { ExportFormat } from '@/lib/domain';
 
@@ -207,9 +208,14 @@ export function ExportsPage() {
                 <div className="flex shrink-0 items-center gap-2">
                   <StatusBadge value={e.status} />
                   {e.status === 'done' ? (
-                    <Button variant="noShadow" size="icon" className="size-8" aria-label="Download" onClick={() => runDownload(e.id)}>
-                      <Download className="size-4" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="noShadow" size="icon" className="size-8" aria-label="Download" onClick={() => runDownload(e.id)}>
+                          <Download className="size-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Download</TooltipContent>
+                    </Tooltip>
                   ) : e.status === 'running' || e.status === 'queued' ? (
                     <RefreshCw className="size-4 animate-spin text-foreground/50" />
                   ) : null}

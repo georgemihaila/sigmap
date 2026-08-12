@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 function InterfaceEditor({
   value,
@@ -130,16 +131,21 @@ export function ConfigEditor({
             <div className="flex-1">
               <InterfaceEditor value={iface} onChange={(next) => updateInterface(idx, next)} />
             </div>
-            <Button
-              type="button"
-              variant="neutral"
-              size="icon"
-              className="mt-0 size-8"
-              aria-label="Remove interface"
-              onClick={() => removeInterface(idx)}
-            >
-              <Trash2 className="size-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="neutral"
+                  size="icon"
+                  className="mt-0 size-8"
+                  aria-label="Remove interface"
+                  onClick={() => removeInterface(idx)}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Remove interface</TooltipContent>
+            </Tooltip>
           </div>
         ))}
         {value.interfaces.length === 0 ? (

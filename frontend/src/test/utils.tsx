@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import { api } from '@/api/baseApi';
 import { ThemeProvider } from '@/components/theme-provider';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 import { SessionContext } from '@/features/sessions/session-context';
 import '@/store';
@@ -24,10 +25,12 @@ export function renderWithProviders(
   const wrapped = (
     <Provider store={store}>
       <ThemeProvider>
-        <MemoryRouter initialEntries={options.route ? [options.route] : ['/']}>
-          <SessionContext.Provider value={options.sessionId ?? null}>{ui}</SessionContext.Provider>
-          <Toaster />
-        </MemoryRouter>
+        <TooltipProvider delayDuration={0}>
+          <MemoryRouter initialEntries={options.route ? [options.route] : ['/']}>
+            <SessionContext.Provider value={options.sessionId ?? null}>{ui}</SessionContext.Provider>
+            <Toaster />
+          </MemoryRouter>
+        </TooltipProvider>
       </ThemeProvider>
     </Provider>
   );

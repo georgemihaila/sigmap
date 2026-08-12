@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsOperator } from '@/hooks/useUser';
 import { parseScanConfig } from '@/lib/scanConfig';
 import type { ConfigDiff, ScanPreset } from '@/lib/domain';
@@ -176,18 +177,23 @@ export function PresetsPage() {
                       <Pencil /> Edit
                     </Button>
                     {!p.isBuiltin ? (
-                      <Button
-                        variant="neutral"
-                        size="sm"
-                        className="ml-auto"
-                        aria-label={`Delete ${p.name}`}
-                        onClick={async () => {
-                          await deletePreset(p.id);
-                          toast.success(`Deleted "${p.name}"`);
-                        }}
-                      >
-                        <Trash2 />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="neutral"
+                            size="sm"
+                            className="ml-auto"
+                            aria-label={`Delete ${p.name}`}
+                            onClick={async () => {
+                              await deletePreset(p.id);
+                              toast.success(`Deleted "${p.name}"`);
+                            }}
+                          >
+                            <Trash2 />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete preset</TooltipContent>
+                      </Tooltip>
                     ) : null}
                   </div>
                 ) : null}

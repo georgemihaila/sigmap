@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsOperator } from '@/hooks/useUser';
 import { timeAgo } from '@/lib/time';
 
@@ -69,18 +70,23 @@ export function PairingPage() {
                 <div className="flex w-full flex-col gap-2">
                   <div className="flex items-center justify-between rounded-base border-2 border-border bg-secondary-background px-3 py-2 text-sm">
                     <code className="truncate text-xs">{qr.payload}</code>
-                    <Button
-                      variant="noShadow"
-                      size="icon"
-                      className="size-7"
-                      aria-label="Copy pairing payload"
-                      onClick={() => {
-                        navigator.clipboard?.writeText(qr.payload);
-                        toast.success('Payload copied');
-                      }}
-                    >
-                      <Copy className="size-3.5" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="noShadow"
+                          size="icon"
+                          className="size-7"
+                          aria-label="Copy pairing payload"
+                          onClick={() => {
+                            navigator.clipboard?.writeText(qr.payload);
+                            toast.success('Payload copied');
+                          }}
+                        >
+                          <Copy className="size-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Copy pairing payload</TooltipContent>
+                    </Tooltip>
                   </div>
                   <p className="text-center text-xs text-foreground/60">Token {qr.token} — scan with the Android app or a scanner agent.</p>
                 </div>
