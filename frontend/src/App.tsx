@@ -25,7 +25,6 @@ import {
   IconRadar,
   IconSun,
 } from '@tabler/icons-react';
-import { useState } from 'react';
 import { LiveMapPage } from './pages/LiveMapPage';
 import { SessionsPage } from './pages/SessionsPage';
 import { FleetPage } from './pages/FleetPage';
@@ -34,10 +33,9 @@ import { DevicesPage } from './pages/DevicesPage';
 import { ExportsPage } from './pages/ExportsPage';
 import { PairingPage } from './pages/PairingPage';
 import { LoginPage } from './components/LoginPage';
+import { usePage, type Page } from './store/navigation';
 import { SessionProvider } from './store/session';
 import { useMeQuery, useLogoutMutation } from './store/auth';
-
-type Page = 'live' | 'sessions' | 'fleet' | 'presets' | 'devices' | 'exports' | 'pairing';
 
 const PAGES: Array<{ key: Page; label: string; icon: React.ReactNode; operatorOnly?: boolean }> = [
   { key: 'live', label: 'Live map', icon: <IconMap size={18} /> },
@@ -61,7 +59,7 @@ function ThemeToggle() {
 }
 
 function Shell() {
-  const [page, setPage] = useState<Page>('live');
+  const [page, setPage] = usePage();
   const { data: me, isLoading } = useMeQuery();
   const [logout] = useLogoutMutation();
 

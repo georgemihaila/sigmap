@@ -11,15 +11,18 @@ import {
   Text,
   TextInput,
   Title,
+  Tooltip,
 } from '@mantine/core';
-import { IconCrosshair, IconFileImport, IconPlus } from '@tabler/icons-react';
+import { IconCrosshair, IconFileImport, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
 import { PageHeader } from '../components/PageHeader';
 import {
   useCompareSessionsQuery,
   useCreateSessionMutation,
+  useDeleteSessionMutation,
   useImportGpxMutation,
   useListSessionsQuery,
+  type Session,
 } from '../store/api';
 import { useSession } from '../store/session';
 
@@ -32,11 +35,14 @@ const STATUS: Record<number, { label: string; color: string }> = {
 export function SessionsPage() {
   const { data: sessions, isLoading } = useListSessionsQuery();
   const [createSession] = useCreateSessionMutation();
+  const [deleteSession, { isLoading: deleting }] = useDeleteSessionMutation();
   const [importGpx] = useImportGpxMutation();
   const { activeSessionId, setActiveSessionId } = useSession();
 
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
+
+  const [confirmingDelete, setConfirmingDelete] = useState<Session | null>(null);
 
   const [compareA, setCompareA] = useState<string | null>(null);
   const [compareB, setCompareB] = useState<string | null>(null);
@@ -56,6 +62,13 @@ export function SessionsPage() {
     await createSession({ name: name.trim() });
     setName('');
     setOpen(false);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmingDelete) return;
+    await deleteSession(confirmingDelete.id).unwrap();
+    if (activeSessionId === confirmingDelete.id) setActiveSessionId(null);
+    setConfirmingDelete(null);
   };
 
   const onGpxFile = async (file: File | undefined) => {
@@ -95,6 +108,33 @@ export function SessionsPage() {
         </Stack>
       </Modal>
 
+      <Modal
+        opened={confirmingDelete !== null}
+        onClose={() => setConfirmingDelete(null)}
+        title="Delete session?"
+      >
+        <Stack>
+          <Text size="sm">
+            Delete <Text span fw={600}>{confirmingDelete?.name}</Text>? This removes the session,
+            its swarms and device assignments from the dashboard. Detection and GPS records for it
+            are retained in the database.
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="light" onClick={() => setConfirmingDelete(null)}>
+              Cancel
+            </Button>
+            <Button
+              color="red"
+              leftSection={<IconTrash size={16} />}
+              loading={deleting}
+              onClick={() => void handleConfirmDelete()}
+            >
+              Delete session
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
       <Card p={0}>
         <Table>
           <Table.Thead>
@@ -127,14 +167,27 @@ export function SessionsPage() {
                   </Table.Td>
                   <Table.Td>{new Date(s.createdAt).toLocaleString()}</Table.Td>
                   <Table.Td ta="right">
-                    <Button
-                      size="compact-sm"
-                      variant={s.id === activeSessionId ? 'filled' : 'light'}
-                      leftSection={<IconCrosshair size={14} />}
-                      onClick={() => setActiveSessionId(s.id)}
-                    >
-                      Focus
-                    </Button>
+                    <Group gap="xs" justify="flex-end">
+                      <Button
+                        size="compact-sm"
+                        variant={s.id === activeSessionId ? 'filled' : 'light'}
+                        leftSection={<IconCrosshair size={14} />}
+                        onClick={() => setActiveSessionId(s.id)}
+                      >
+                        Focus
+                      </Button>
+                      <Tooltip label={`Delete ${s.name}`}>
+                        <Button
+                          size="compact-sm"
+                          color="red"
+                          variant="subtle"
+                          leftSection={<IconTrash size={14} />}
+                          onClick={() => setConfirmingDelete(s)}
+                        >
+                          Delete
+                        </Button>
+                      </Tooltip>
+                    </Group>
                   </Table.Td>
                 </Table.Tr>
               );

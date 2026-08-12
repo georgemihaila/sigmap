@@ -52,6 +52,7 @@ static ScannerOptions LoadOptions()
     options.SourceType = Env("SCANNER__SOURCE_TYPE", options.SourceType);
     options.OfflineDbPath = Env("SCANNER__OFFLINE_DB", options.OfflineDbPath);
     options.DeviceIdPath = Env("SCANNER__DEVICE_ID_FILE", options.DeviceIdPath);
+    options.BackendUrl = Env("SCANNER__BACKEND_URL", options.BackendUrl);
     options.SimulateGps = !string.Equals(Env("SCANNER__SIMULATE_GPS", "true"), "false", StringComparison.OrdinalIgnoreCase);
     if (int.TryParse(Env("SCANNER__HEARTBEAT_MS", string.Empty), out var hb))
         options.HeartbeatIntervalMs = hb;

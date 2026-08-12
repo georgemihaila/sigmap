@@ -38,6 +38,27 @@ public sealed class SessionConfigService : ISessionConfigService
             row.UpdatedAt);
     }
 
+    /// <summary>Returns the most recently updated config for a device across all
+    /// sessions, used by the agent to pull its current config on startup.</summary>
+    public async Task<SessionConfigDto?> GetLatestForDeviceAsync(Guid deviceId, CancellationToken ct)
+    {
+        var row = await _db.SessionDeviceConfigs
+            .Where(c => c.DeviceId == deviceId)
+            .OrderByDescending(c => c.UpdatedAt)
+            .FirstOrDefaultAsync(ct);
+        if (row is null)
+            return null;
+
+        return new SessionConfigDto(
+            row.ConfigJson,
+            row.PresetId,
+            row.Source.ToString(),
+            row.PushState.ToString(),
+            row.ConfigRev,
+            row.LastPushId,
+            row.UpdatedAt);
+    }
+
     public async Task<SessionConfigPushResult> ApplyAsync(
         Guid sessionId, Guid deviceId, ScanConfig config, Guid? presetId, CancellationToken ct)
     {

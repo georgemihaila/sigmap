@@ -78,6 +78,11 @@ export interface ConfigPushResult {
   pushState: string;
 }
 
+export interface FleetConfigApplyResult {
+  deviceCount: number;
+  results: ConfigPushResult[];
+}
+
 export interface SignalPoint {
   at: string;
   signalDbm: number;
@@ -90,7 +95,7 @@ export interface SignalPoint {
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
-  tagTypes: ['Session', 'Device', 'Preset'],
+  tagTypes: ['Session', 'Device', 'Preset', 'DeviceConfig'],
   endpoints: (builder) => ({
     listSessions: builder.query<Session[], void>({
       query: () => '/sessions',
@@ -98,6 +103,10 @@ export const api = createApi({
     }),
     createSession: builder.mutation<Session, { name: string; description?: string }>({
       query: (body) => ({ url: '/sessions', method: 'POST', body }),
+      invalidatesTags: ['Session'],
+    }),
+    deleteSession: builder.mutation<void, string>({
+      query: (id) => ({ url: `/sessions/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Session'],
     }),
     listDetectedDevices: builder.query<DetectedDevicePage, { cursor?: string; limit?: number }>({
@@ -136,6 +145,9 @@ export const api = createApi({
     }),
     getDeviceConfig: builder.query<DeviceConfigDto, { sessionId: string; deviceId: string }>({
       query: ({ sessionId, deviceId }) => `/sessions/${sessionId}/devices/${deviceId}/config`,
+      providesTags: (_result, _error, arg) => [
+        { type: 'DeviceConfig' as const, id: `${arg.sessionId}:${arg.deviceId}` },
+      ],
     }),
     applyConfig: builder.mutation<ConfigPushResult, { sessionId: string; deviceId: string; config: string; presetId: string | null }>({
       query: ({ sessionId, deviceId, config, presetId }) => ({
@@ -143,6 +155,18 @@ export const api = createApi({
         method: 'PUT',
         body: { config, presetId },
       }),
+      invalidatesTags: (result) =>
+        result
+          ? [{ type: 'DeviceConfig' as const, id: `${result.sessionId}:${result.deviceId}` }]
+          : [],
+    }),
+    applyFleetConfig: builder.mutation<FleetConfigApplyResult, { sessionId: string; config: string; presetId: string | null }>({
+      query: ({ sessionId, config, presetId }) => ({
+        url: `/sessions/${sessionId}/devices/config`,
+        method: 'PUT',
+        body: { config, presetId },
+      }),
+      invalidatesTags: ['DeviceConfig'],
     }),
     getSignalSeries: builder.query<SignalPoint[], string>({
       query: (mac) => `/devices/detected/${encodeURIComponent(mac)}/signal-series`,
@@ -207,6 +231,7 @@ export const api = createApi({
 export const {
   useListSessionsQuery,
   useCreateSessionMutation,
+  useDeleteSessionMutation,
   useListDetectedDevicesQuery,
   useGetSessionStatsQuery,
   useListDevicesQuery,
@@ -216,6 +241,7 @@ export const {
   useDeletePresetMutation,
   useGetDeviceConfigQuery,
   useApplyConfigMutation,
+  useApplyFleetConfigMutation,
   useGetSignalSeriesQuery,
   useGetDetectedDeviceDetailQuery,
   useListPendingPairingsQuery,

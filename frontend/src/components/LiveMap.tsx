@@ -1,8 +1,13 @@
-import { Card, Group, Text } from '@mantine/core';
-import { CircleMarker, MapContainer, TileLayer, Tooltip } from 'react-leaflet';
+import { ActionIcon, Card, Group, Text, Tooltip } from '@mantine/core';
+import { IconCurrentLocation } from '@tabler/icons-react';
+import type { Map as LeafletMap } from 'leaflet';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { CircleMarker, MapContainer, TileLayer, Tooltip as LeafletTooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAppSelector } from '../store/hooks';
 import type { MapPoint } from '../store/liveMapSlice';
+
+const FALLBACK_CENTER: [number, number] = [44.4268, 26.1025];
 
 const COLORS: Record<string, string> = {
   AP: '#e03131',
@@ -28,6 +33,33 @@ export function LiveMap({ coverage }: { coverage?: CoveragePoint[] }) {
   const points = useAppSelector((s) => s.liveMap.points);
   const batchCount = useAppSelector((s) => s.liveMap.batchCount);
   const markers: MapPoint[] = Object.values(points);
+
+  const mapRef = useRef<LeafletMap | null>(null);
+  const [center, setCenter] = useState<[number, number]>(FALLBACK_CENTER);
+  const [locating, setLocating] = useState(false);
+
+  const locate = useCallback(() => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const latlng: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setCenter(latlng);
+        mapRef.current?.flyTo(latlng, Math.max(mapRef.current.getZoom(), 14));
+        setLocating(false);
+      },
+      () => {
+        // Permission denied or unavailable: keep the current center.
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 30_000 },
+    );
+  }, []);
+
+  useEffect(() => {
+    // Ask for location once on mount and default the map to the user.
+    locate();
+  }, [locate]);
 
   return (
     <Card p={0} style={{ overflow: 'hidden' }}>
@@ -55,9 +87,10 @@ export function LiveMap({ coverage }: { coverage?: CoveragePoint[] }) {
           {coverage ? ` · ${coverage.length} coverage pts` : ''}
         </Text>
       </Group>
-      <div style={{ height: 'calc(100vh - 220px)', minHeight: 480 }}>
+      <div style={{ height: 'calc(100vh - 220px)', minHeight: 480, position: 'relative' }}>
         <MapContainer
-          center={[52.52, 13.405]}
+          ref={mapRef}
+          center={center}
           zoom={13}
           style={{ height: '100%', width: '100%' }}
         >
@@ -80,14 +113,28 @@ export function LiveMap({ coverage }: { coverage?: CoveragePoint[] }) {
               radius={6}
               pathOptions={{ color: COLORS[p.type] ?? COLORS.UNKNOWN, weight: 1 }}
             >
-              <Tooltip>
+              <LeafletTooltip>
                 <strong>{p.ssid ?? p.mac}</strong>
                 <br />
                 {p.type} · {p.signalDbm} dBm
-              </Tooltip>
+              </LeafletTooltip>
             </CircleMarker>
           ))}
         </MapContainer>
+        <Tooltip label="Center on my location" position="left">
+          <ActionIcon
+            variant="filled"
+            color="teal"
+            radius="xl"
+            size="lg"
+            loading={locating}
+            onClick={locate}
+            style={{ position: 'absolute', top: 12, right: 12, zIndex: 1001 }}
+            aria-label="Center on my location"
+          >
+            <IconCurrentLocation size={18} />
+          </ActionIcon>
+        </Tooltip>
       </div>
     </Card>
   );

@@ -16,13 +16,13 @@ namespace Sigmap.Scanner.Agent.Broker;
 public sealed class ConfigConsumer
 {
     private readonly string _deviceId;
-    private readonly Action<ScanConfig> _apply;
+    private readonly Func<ScanConfig, CancellationToken, Task> _apply;
     private readonly RabbitMqPublisher _publisher;
     private readonly ILogger<ConfigConsumer> _log;
 
     public ConfigConsumer(
         string deviceId,
-        Action<ScanConfig> apply,
+        Func<ScanConfig, CancellationToken, Task> apply,
         RabbitMqPublisher publisher,
         ILogger<ConfigConsumer> log)
     {
@@ -97,7 +97,7 @@ public sealed class ConfigConsumer
             var error = string.Empty;
             try
             {
-                _apply(push.Config);
+                await _apply(push.Config, ct);
                 _log.LogInformation("Applied config push {PushId} (rev {PresetId})", push.PushId, string.IsNullOrEmpty(push.PresetId) ? "custom" : $"preset {push.PresetId}");
             }
             catch (Exception ex)

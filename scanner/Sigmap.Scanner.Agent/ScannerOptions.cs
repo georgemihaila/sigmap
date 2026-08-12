@@ -17,6 +17,10 @@ public sealed class ScannerOptions
     public string OfflineDbPath { get; set; } = "scanner-buffer.db";
     public string DeviceIdPath { get; set; } = "device.id";
 
+    /// <summary>Core API base URL the agent pulls its config from on startup
+    /// (so a fresh/crashed agent resumes scanning without a manual push).</summary>
+    public string BackendUrl { get; set; } = "http://localhost:5080";
+
     /// <summary>"simulator" (no privileges) | "wifi" (monitor mode + caps).</summary>
     public string SourceType { get; set; } = "simulator";
 

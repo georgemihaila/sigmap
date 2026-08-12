@@ -122,7 +122,7 @@ static async Task<IResult> ForwardAsync(
     if (ctx.User.Identity?.IsAuthenticated != true)
         return Results.Json(new { error = "unauthorized" }, statusCode: StatusCodes.Status401Unauthorized);
 
-    if (RequiresOperator(path) && !ctx.User.IsInRole("operator"))
+    if (RequiresOperator(ctx.Request.Method, path) && !ctx.User.IsInRole("operator"))
         return Results.Json(new { error = "forbidden" }, statusCode: StatusCodes.Status403Forbidden);
 
     var client = factory.CreateClient("backend");
@@ -155,10 +155,11 @@ static async Task<IResult> ForwardAsync(
         response.Content.Headers.ContentType?.ToString() ?? "application/json");
 }
 
-static bool RequiresOperator(string path) =>
+static bool RequiresOperator(string method, string path) =>
     path.Contains("/config", StringComparison.OrdinalIgnoreCase)
     || path.StartsWith("/pairing/", StringComparison.OrdinalIgnoreCase)
-    || (path.StartsWith("/sessions", StringComparison.OrdinalIgnoreCase) && path.Contains("archive"))
+    || (path.StartsWith("/sessions", StringComparison.OrdinalIgnoreCase)
+        && (path.Contains("archive") || method.Equals("DELETE", StringComparison.OrdinalIgnoreCase)))
     || path.StartsWith("/presets", StringComparison.OrdinalIgnoreCase)
     || path.StartsWith("/wigle", StringComparison.OrdinalIgnoreCase)
     || path.StartsWith("/settings/wigle", StringComparison.OrdinalIgnoreCase);

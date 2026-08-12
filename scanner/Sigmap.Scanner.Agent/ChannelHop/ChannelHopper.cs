@@ -29,6 +29,8 @@ public sealed class ChannelHopper
 
     public int CurrentChannel => _channels[_index];
 
+    public int FirstChannel => _channels[0];
+
     public int ChannelCount => _channels.Count;
 
     /// <summary>Advances to the next channel (wraps around).</summary>

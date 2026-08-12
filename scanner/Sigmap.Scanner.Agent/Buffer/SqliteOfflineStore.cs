@@ -27,6 +27,11 @@ public sealed class SqliteOfflineStore : IOfflineStore, IAsyncDisposable
                 queued_at INTEGER NOT NULL
             );
             CREATE INDEX IF NOT EXISTS ix_pending_queued_at ON pending_batches(queued_at);
+            CREATE TABLE IF NOT EXISTS app_config (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                config_json TEXT NOT NULL,
+                updated_at INTEGER NOT NULL
+            );
             """;
         cmd.ExecuteNonQuery();
     }
@@ -103,6 +108,44 @@ public sealed class SqliteOfflineStore : IOfflineStore, IAsyncDisposable
             await using var cmd = _connection.CreateCommand();
             cmd.CommandText = "SELECT COUNT(*) FROM pending_batches";
             return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct));
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>Persists the last applied scan config (JSON) so a restarted
+    /// agent resumes its previous config without waiting for a new push.</summary>
+    public async Task SaveConfigAsync(string configJson, CancellationToken ct)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            await using var cmd = _connection.CreateCommand();
+            cmd.CommandText = """
+                INSERT INTO app_config (id, config_json, updated_at)
+                VALUES (1, $json, $now)
+                ON CONFLICT(id) DO UPDATE SET config_json = $json, updated_at = $now
+                """;
+            cmd.Parameters.AddWithValue("$json", configJson);
+            cmd.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task<string?> LoadConfigAsync(CancellationToken ct)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            await using var cmd = _connection.CreateCommand();
+            cmd.CommandText = "SELECT config_json FROM app_config WHERE id = 1";
+            return await cmd.ExecuteScalarAsync(ct) as string;
         }
         finally
         {

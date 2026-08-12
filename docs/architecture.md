@@ -28,9 +28,10 @@ Architecture and design decisions. Companion docs: `message-contracts.md`,
                   └─────────────┘  └─────────┘  └──────────────┘
 ```
 
-* **Scanner agent** (C#, net8.0, self-contained/AOT): libpcap capture via
-  SharpPcap, `iw` for monitor/channel control, BlueZ over D-Bus for BT/BLE,
-  RabbitMQ publisher with confirms, SQLite offline buffer.
+* **Scanner agent** (C#, net8.0, self-contained/AOT): raw AF_PACKET capture
+  with in-process radiotap/802.11 parsing, `iw` for monitor/channel control,
+  BlueZ over D-Bus for BT/BLE, RabbitMQ publisher with confirms, SQLite offline
+  buffer.
 * **Core API backend** (.NET 10): domain API, EF Core + PostGIS, RabbitMQ
   consumers, config-push pipeline, WiGLE integration.
 * **BFF** (.NET 10): session auth, response shaping, the only gRPC-Web endpoint.
@@ -43,8 +44,10 @@ Architecture and design decisions. Companion docs: `message-contracts.md`,
 
 For v1 the scanner shells out to `iw` for monitor-mode setup and channel
 hopping, isolated behind the `ILinuxWireless` interface in
-`scanner/Sigmap.Scanner.Agent/Linux`. Frame capture is native via SharpPcap
-(libpcap P/Invoke) — no Python tooling.
+`scanner/Sigmap.Scanner.Agent/Linux`. Frame capture is a raw `AF_PACKET`
+socket (`scanner/Sigmap.Scanner.Agent/Capture.Wifi/RawPacketSocket.cs`) with
+radiotap and 802.11 parsing done in-process — no Python tooling and no
+libpcap/SharpPcap dependency.
 
 **Why not raw nl80211 over netlink for v1:** a native `AF_NETLINK` +
 `NL80211_CMD_SET_CHANNEL` implementation requires genl attribute encoding,

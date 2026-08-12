@@ -41,7 +41,7 @@ real scanner (or this repo's Android app) from the **Pairing** page.
 contracts/     shared protobuf schemas + generated C# + shared location logic
 backend/       core domain API (Domain/Application/Infrastructure/Api)
 bff/           UI-facing service: auth, shaping, gRPC-Web live stream
-scanner/       field agent: SharpPcap capture, iw control, simulator source
+scanner/       field agent: raw packet capture, iw control, simulator source
 frontend/      React 18 + TS + Mantine + Redux Toolkit / RTK Query
 android/       Kotlin + Jetpack Compose client
 deploy/        docker-compose.yml (+ prod/test overrides)

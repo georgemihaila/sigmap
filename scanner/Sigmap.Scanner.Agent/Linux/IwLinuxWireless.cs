@@ -71,11 +71,21 @@ public sealed class IwLinuxWireless : ILinuxWireless
 
     public async Task SetMonitorModeAsync(string iface, bool enabled, CancellationToken ct)
     {
+        // Mode switches require the interface to be administratively down;
+        // otherwise iw fails with "Device or resource busy".
+        var down = await RunAsync("ip", $"link set {iface} down", ct);
+        if (down.ExitCode != 0)
+            _log.LogWarning("Failed to bring {Iface} down before mode switch: {Stderr}", iface, down.Stderr);
+
         var mode = enabled ? "monitor" : "managed";
         var (exit, _, stderr) = await RunAsync("iw", $"dev {iface} set type {mode}", ct);
         if (exit != 0)
             throw new InvalidOperationException($"Failed to set {iface} to {mode}: {stderr}");
         _log.LogInformation("{Iface} -> {Mode}", iface, mode);
+
+        var up = await RunAsync("ip", $"link set {iface} up", ct);
+        if (up.ExitCode != 0)
+            _log.LogWarning("Failed to bring {Iface} up after mode switch: {Stderr}", iface, up.Stderr);
     }
 
     public async Task SetChannelAsync(string iface, int channel, CancellationToken ct)

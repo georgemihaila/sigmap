@@ -1,27 +1,52 @@
 import {
+  Alert,
   Badge,
   Button,
   Card,
   Drawer,
+  Group,
+  Loader,
+  Modal,
   Select,
   Stack,
   Table,
   Text,
+  Tooltip,
 } from '@mantine/core';
-import { IconPencil } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import { IconPencil, IconSettings } from '@tabler/icons-react';
+import { useEffect, useRef, useState } from 'react';
 import { ConfigEditor, stateToConfig, toState } from '../components/ConfigEditor';
 import { PageHeader } from '../components/PageHeader';
 import { timeAgo } from '../lib/time';
 import {
   useApplyConfigMutation,
+  useApplyFleetConfigMutation,
   useGetDeviceConfigQuery,
   useListDevicesQuery,
   useListPresetsQuery,
+  useListSessionsQuery,
   type Device,
 } from '../store/api';
 import { useSession } from '../store/session';
 import { ScanConfig } from '../generated/config_pb';
+
+function defaultScanConfig(): ScanConfig {
+  return new ScanConfig({ channelHopMs: 500, batchIntervalMs: 1500 });
+}
+
+function mergeInterfaces(configJson: string, current: string[]): string {
+  if (current.length === 0) return configJson;
+  try {
+    const parsed = JSON.parse(configJson) as {
+      interfaces?: Array<{ name: string; monitorMode?: boolean; enabled?: boolean }>;
+    };
+    if (parsed.interfaces && parsed.interfaces.length > 0) return configJson;
+    parsed.interfaces = current.map((name) => ({ name, monitorMode: true, enabled: true }));
+    return JSON.stringify(parsed);
+  } catch {
+    return configJson;
+  }
+}
 
 function useNow(intervalMs: number): number {
   const [now, setNow] = useState(() => Date.now());
@@ -53,11 +78,33 @@ function DeviceRow({
   const stale = lastSeen ? now - lastSeen.getTime() > 60_000 : true;
   const drift = !!sessionId && config?.pushState === 'Pending';
 
+  const [applying, setApplying] = useState(false);
+  const [applyError, setApplyError] = useState<string | null>(null);
+
+  const currentInterfaces = (): string[] => {
+    if (!config?.configJson) return [];
+    try {
+      const parsed = JSON.parse(config.configJson) as { interfaces?: Array<{ name: string }> };
+      return (parsed.interfaces ?? []).map((i) => i.name);
+    } catch {
+      return [];
+    }
+  };
+
   const applyPreset = async (presetId: string | null) => {
     if (!sessionId || !presetId) return;
     const preset = presets?.find((p) => p.id === presetId);
     if (!preset) return;
-    await applyConfig({ sessionId, deviceId: device.id, config: preset.configJson, presetId });
+    const merged = mergeInterfaces(preset.configJson, currentInterfaces());
+    setApplyError(null);
+    setApplying(true);
+    try {
+      await applyConfig({ sessionId, deviceId: device.id, config: merged, presetId }).unwrap();
+    } catch {
+      setApplyError('Failed to apply preset');
+    } finally {
+      setApplying(false);
+    }
   };
 
   return (
@@ -83,25 +130,43 @@ function DeviceRow({
           )}
         </Table.Td>
         <Table.Td>
-          <Select
-            data={(presets ?? []).filter((p) => !p.isBuiltin).map((p) => ({ value: p.id, label: p.name }))}
-            value={config?.presetId ?? null}
-            onChange={applyPreset}
-            placeholder="Apply preset"
-            clearable
-            w={180}
-            aria-label={`Preset for ${device.name}`}
-          />
+          <Stack gap={4}>
+            <Tooltip label={sessionId ? undefined : 'Select a session to apply presets'} disabled={!!sessionId}>
+              <Select
+                data={(presets ?? []).filter((p) => !p.isBuiltin).map((p) => ({ value: p.id, label: p.name }))}
+                value={config?.presetId ?? null}
+                onChange={applyPreset}
+                placeholder="Apply preset"
+                clearable
+                disabled={!sessionId}
+                w={180}
+                aria-label={`Preset for ${device.name}`}
+              />
+            </Tooltip>
+            {applyError && (
+              <Text size="xs" c="red">
+                {applyError}
+              </Text>
+            )}
+            {applying && (
+              <Text size="xs" c="dimmed">
+                Pushing…
+              </Text>
+            )}
+          </Stack>
         </Table.Td>
         <Table.Td ta="right">
-          <Button
-            size="compact-sm"
-            variant="light"
-            leftSection={<IconPencil size={14} />}
-            onClick={() => setOpenEditor(true)}
-          >
-            Edit config
-          </Button>
+          <Tooltip label={sessionId ? undefined : 'Select a session to edit config'} disabled={!!sessionId}>
+            <Button
+              size="compact-sm"
+              variant="light"
+              leftSection={<IconPencil size={14} />}
+              disabled={!sessionId}
+              onClick={() => setOpenEditor(true)}
+            >
+              Edit config
+            </Button>
+          </Tooltip>
         </Table.Td>
       </Table.Tr>
 
@@ -138,16 +203,138 @@ function ConfigEditorShell({
   );
 }
 
+function FleetConfigModal({
+  opened,
+  onClose,
+  sessionId,
+}: {
+  opened: boolean;
+  onClose: () => void;
+  sessionId: string | null;
+}) {
+  const { data: devices } = useListDevicesQuery();
+  const [applyFleetConfig, { isLoading: applying }] = useApplyFleetConfigMutation();
+  const firstDeviceId = devices?.[0]?.id;
+  const { data: firstConfig, isLoading: configLoading } = useGetDeviceConfigQuery(
+    { sessionId: sessionId ?? '', deviceId: firstDeviceId ?? '' },
+    { skip: !sessionId || !firstDeviceId },
+  );
+
+  const [config, setConfig] = useState<ScanConfig>(() => defaultScanConfig());
+  const [message, setMessage] = useState<string | null>(null);
+  const [applied, setApplied] = useState<number | null>(null);
+  const didInit = useRef(false);
+
+  const ready = opened && !configLoading;
+
+  useEffect(() => {
+    if (opened && ready && !didInit.current) {
+      didInit.current = true;
+      setMessage(null);
+      setApplied(null);
+      setConfig(
+        firstConfig?.configJson
+          ? ScanConfig.fromJson(JSON.parse(firstConfig.configJson))
+          : defaultScanConfig(),
+      );
+    }
+    if (!opened) didInit.current = false;
+  }, [opened, ready, firstConfig]);
+
+  const submit = async () => {
+    if (!sessionId) return;
+    const res = await applyFleetConfig({
+      sessionId,
+      config: JSON.stringify(config.toJson()),
+      presetId: null,
+    }).unwrap();
+    setApplied(res.deviceCount);
+    setMessage(`Config pushed to ${res.deviceCount} device${res.deviceCount === 1 ? '' : 's'} in the active session.`);
+  };
+
+  return (
+    <Modal opened={opened} onClose={onClose} title="Reconfigure fleet" size="lg">
+      {!ready ? (
+        <Group justify="center" py="xl">
+          <Loader />
+        </Group>
+      ) : (
+        <Stack>
+          <Text size="sm" c="dimmed">
+            Edits apply to every device currently assigned to the active session. Devices outside
+            the session are left untouched.
+          </Text>
+          <ConfigEditor
+            initial={toState(config)}
+            onChange={(s) => setConfig(stateToConfig(s))}
+          />
+          {message && (
+            <Text size="sm" c={applied != null ? 'teal' : 'red'}>
+              {message}
+            </Text>
+          )}
+          <Group justify="flex-end">
+            <Button variant="light" onClick={onClose}>
+              Close
+            </Button>
+            <Button
+              leftSection={<IconSettings size={16} />}
+              loading={applying}
+              onClick={() => void submit()}
+            >
+              Push to fleet
+            </Button>
+          </Group>
+        </Stack>
+      )}
+    </Modal>
+  );
+}
+
 export function FleetPage() {
   const { data: devices } = useListDevicesQuery();
-  const { activeSessionId } = useSession();
+  const { data: sessions } = useListSessionsQuery();
+  const { activeSessionId, setActiveSessionId } = useSession();
   const now = useNow(30_000);
+  const [reconfigOpen, setReconfigOpen] = useState(false);
 
   return (
     <>
       <PageHeader
         title="Device fleet"
         subtitle={`${devices?.length ?? 0} devices · live status, config drift and preset switching`}
+        actions={
+          <Group gap="xs">
+            <Select
+              data={(sessions ?? []).map((s) => ({ value: s.id, label: s.name }))}
+              value={activeSessionId}
+              onChange={setActiveSessionId}
+              placeholder="Active session"
+              clearable
+              searchable
+              w={220}
+              aria-label="Active session"
+            />
+            <Button
+              leftSection={<IconSettings size={16} />}
+              disabled={!activeSessionId}
+              onClick={() => setReconfigOpen(true)}
+            >
+              Reconfigure fleet
+            </Button>
+          </Group>
+        }
+      />
+      {!activeSessionId && (
+        <Alert color="yellow" variant="light">
+          No active session selected. Pick one above to apply presets, edit configs or reconfigure
+          the fleet.
+        </Alert>
+      )}
+      <FleetConfigModal
+        opened={reconfigOpen}
+        onClose={() => setReconfigOpen(false)}
+        sessionId={activeSessionId}
       />
       <Card p={0}>
         <Table>

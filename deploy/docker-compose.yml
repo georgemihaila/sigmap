@@ -25,6 +25,7 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     ports:
       - "15672:15672" # management UI
+      - "5672:5672"   # AMQP: host-run scanners connect here
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
@@ -82,8 +83,10 @@ services:
       - bff
     restart: unless-stopped
 
-  # Local dev scanner: synthetic detections, no privileges required.
+  # Synthetic-data scanner. Opt-in via profile so the default stack runs with
+  # no simulated data: docker compose --profile sim up -d
   scanner-agent:
+    profiles: ["sim"]
     build:
       context: ..
       dockerfile: deploy/Dockerfile.scanner-agent

@@ -23,6 +23,7 @@ public sealed record SessionConfigPushResult(
 public interface ISessionConfigService
 {
     Task<SessionConfigDto?> GetAsync(Guid sessionId, Guid deviceId, CancellationToken ct);
+    Task<SessionConfigDto?> GetLatestForDeviceAsync(Guid deviceId, CancellationToken ct);
     Task<SessionConfigPushResult> ApplyAsync(
         Guid sessionId, Guid deviceId, ScanConfig config, Guid? presetId, CancellationToken ct);
 }

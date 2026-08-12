@@ -13,7 +13,7 @@ export default defineConfig({
       // REST: frontend only talks to the BFF (same-origin in prod).
       '/api': { target: proxyTarget, changeOrigin: true },
       // gRPC-Web streaming.
-      '/LiveStream': { target: proxyTarget, changeOrigin: true },
+      '/sigmap.live.LiveStream': { target: proxyTarget, changeOrigin: true },
     },
   },
   test: {

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Sigmap.Backend.Application.Configuration;
 using Sigmap.Backend.Domain.Entities;
 using Sigmap.Backend.Infrastructure.Persistence;
 
@@ -13,6 +14,7 @@ public static class DeviceEndpoints
 
         g.MapGet("/", ListDevices);
         g.MapGet("/{id:guid}", GetDevice);
+        g.MapGet("/{id:guid}/config", GetDeviceConfig);
         g.MapGet("/detected", ListDetectedDevices);
         g.MapGet("/detected/{mac}", GetDetectedDevice);
         g.MapGet("/detected/{mac}/signal-series", GetSignalSeries);
@@ -30,6 +32,15 @@ public static class DeviceEndpoints
     {
         var device = await db.Devices.FirstOrDefaultAsync(d => d.Id == id, ct);
         return device is null ? TypedResults.NotFound() : TypedResults.Ok(device);
+    }
+
+    /// <summary>Returns the device's most recent scan config (any session); the
+    /// agent pulls this on startup so it doesn't idle waiting for a push.</summary>
+    private static async Task<Results<Ok<SessionConfigDto>, NotFound>> GetDeviceConfig(
+        Guid id, ISessionConfigService service, CancellationToken ct)
+    {
+        var dto = await service.GetLatestForDeviceAsync(id, ct);
+        return dto is null ? TypedResults.NotFound() : TypedResults.Ok(dto);
     }
 
     private static async Task<Ok<DetectedDevicePage>> ListDetectedDevices(

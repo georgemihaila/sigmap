@@ -1,8 +1,14 @@
 # Sigmap — deploy guide
 
-`docker compose -f deploy/docker-compose.yml up -d` brings up the whole dev
-stack: Postgres (PostGIS), RabbitMQ, core API, BFF, Vite frontend, and a
-simulator scanner agent.
+`docker compose -f deploy/docker-compose.yml up -d` brings up the core dev
+stack: Postgres (PostGIS), RabbitMQ, core API, BFF and the Vite frontend. No
+scanner runs by default, so no data is generated unless you opt in.
+
+To start the synthetic-data scanner agent:
+
+```bash
+docker compose -f deploy/docker-compose.yml --profile sim up -d scanner-agent
+```
 
 ## Dev vs prod
 
@@ -11,7 +17,7 @@ simulator scanner agent.
 | frontend | Vite dev server on :5173 | static build behind nginx on :8080 |
 | data | named volumes (persist across recreate) | same volumes |
 | restart | `unless-stopped` | `always` |
-| scanner | simulator (no privileges) | simulator by default; swap to `wifi` + caps for real capture |
+| scanner | none (opt-in via `--profile sim`) | same; opt in via `--profile sim`, swap to `wifi` + caps for real capture |
 
 ## Real monitor-mode scanning
 
@@ -29,7 +35,7 @@ scanner-agent:
     SCANNER__DEVICE_ID: <stable-uuid>
 ```
 
-The scanner agent needs `CAP_NET_RAW` (libpcap) + `CAP_NET_ADMIN` (iw) or root.
+The scanner agent needs `CAP_NET_RAW` (raw AF_PACKET socket) + `CAP_NET_ADMIN` (iw) or root.
 See `docs/architecture.md` for the `iw`-vs-netlink decision.
 
 ## Integration tests

@@ -5,8 +5,8 @@ namespace Sigmap.Scanner.Agent.Capture;
 
 /// <summary>
 /// A producer of detections (and optional GPS samples). Real hardware sources
-/// (libpcap over monitor mode, BlueZ) and the synthetic simulator implement the
-/// same interface so the pipeline is identical and swappable.
+/// (raw AF_PACKET capture over monitor mode, BlueZ) and the synthetic simulator
+/// implement the same interface so the pipeline is identical and swappable.
 /// </summary>
 public interface IScanSource
 {

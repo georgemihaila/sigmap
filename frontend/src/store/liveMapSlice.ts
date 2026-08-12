@@ -11,13 +11,29 @@ export interface MapPoint {
   lastSeen: number;
 }
 
+export interface RecentDetection {
+  mac: string;
+  ssid?: string;
+  type: string;
+  signalDbm: number;
+  at: number;
+}
+
 export interface LiveMapState {
   points: Record<string, MapPoint>;
   batchCount: number;
   lastBatchAt: number | null;
+  detectionCount: number;
+  recent: RecentDetection[];
 }
 
-export const initialState: LiveMapState = { points: {}, batchCount: 0, lastBatchAt: null };
+export const initialState: LiveMapState = {
+  points: {},
+  batchCount: 0,
+  lastBatchAt: null,
+  detectionCount: 0,
+  recent: [],
+};
 
 export const DEVICE_TYPE_NAMES = ['UNSPECIFIED', 'AP', 'BLUETOOTH', 'BT_LE', 'CLIENT'] as const;
 
@@ -43,10 +59,21 @@ const liveMapSlice = createSlice({
   reducers: {
     batchReceived(state, action: PayloadAction<LocatedBatch>) {
       const batch = action.payload;
-      for (const detection of batch.detections) {
-        const point = toMapPoint(detection);
+      for (const located of batch.detections) {
+        const d = located.detection;
+        if (!d || !d.mac) continue;
+        const point = toMapPoint(located);
         if (point) state.points[point.mac] = point;
+        state.recent.unshift({
+          mac: d.mac,
+          ssid: d.ssid || undefined,
+          type: DEVICE_TYPE_NAMES[d.deviceType] ?? 'UNKNOWN',
+          signalDbm: d.signalDbm,
+          at: Date.now(),
+        });
       }
+      state.recent = state.recent.slice(0, 100);
+      state.detectionCount += batch.detections.length;
       state.batchCount += 1;
       state.lastBatchAt = Date.now();
     },
@@ -54,6 +81,8 @@ const liveMapSlice = createSlice({
       state.points = {};
       state.batchCount = 0;
       state.lastBatchAt = null;
+      state.detectionCount = 0;
+      state.recent = [];
     },
   },
 });
