@@ -5,6 +5,7 @@ import { useListFleetQuery } from '@/api/fleetApi';
 import { useListDetectedDevicesQuery } from '@/api/detectedApi';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,9 +13,9 @@ import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/utils';
 
 export function DashboardPage() {
-  const { data: sessions } = useListSessionsQuery();
-  const { data: fleet } = useListFleetQuery();
-  const { data: recent } = useListDetectedDevicesQuery({ limit: 8 });
+  const { data: sessions, isError: sessionsError } = useListSessionsQuery();
+  const { data: fleet, isError: fleetError } = useListFleetQuery();
+  const { data: recent, isError: recentError } = useListDetectedDevicesQuery({ limit: 8 });
 
   const active = sessions?.filter((s) => s.status === 'active') ?? [];
   const planned = sessions?.filter((s) => s.status === 'planned') ?? [];
@@ -36,6 +37,13 @@ export function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Dashboard" description="Operational overview of sessions and fleet health." />
+
+      {sessionsError || fleetError || recentError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Some data failed to load</AlertTitle>
+          <AlertDescription>Session, fleet or detection data is unavailable right now.</AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         {stats.map((s) => {

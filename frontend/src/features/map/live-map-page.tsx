@@ -7,6 +7,7 @@ import { useSessionId } from '@/features/sessions/session-context';
 import { LiveMap } from '@/components/live-map';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,7 +18,7 @@ import { cn } from '@/lib/utils';
 export function LiveMapPage() {
   const sessionId = useSessionId() ?? '';
   const { connected } = useLiveStream();
-  const { data: live, isLoading } = useGetLiveSessionQuery(sessionId, { skip: !sessionId });
+  const { data: live, isLoading, isError } = useGetLiveSessionQuery(sessionId, { skip: !sessionId });
   const { data: coverage } = useGetCoverageQuery(sessionId, { skip: !sessionId });
 
   const points = Object.values(live?.points ?? {});
@@ -36,6 +37,13 @@ export function LiveMapPage() {
           )
         }
       />
+
+      {isError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Failed to load the live session</AlertTitle>
+          <AlertDescription>Check the connection and retry.</AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">

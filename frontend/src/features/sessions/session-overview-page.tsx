@@ -2,6 +2,7 @@ import { useGetSessionStatsQuery, useListSwarmsQuery } from '@/api/sessionsApi';
 import { useListSessionFleetQuery } from '@/api/fleetApi';
 import { useSessionId } from '@/features/sessions/session-context';
 import { PageHeader } from '@/components/page-header';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,7 +21,7 @@ function Bar({ value, max }: { value: number; max: number }) {
 
 export function SessionOverviewPage() {
   const sessionId = useSessionId() ?? '';
-  const { data: stats, isLoading } = useGetSessionStatsQuery(sessionId, { skip: !sessionId });
+  const { data: stats, isLoading, isError } = useGetSessionStatsQuery(sessionId, { skip: !sessionId });
   const { data: swarms } = useListSwarmsQuery(sessionId, { skip: !sessionId });
   const { data: fleet } = useListSessionFleetQuery(sessionId, { skip: !sessionId });
 
@@ -29,6 +30,15 @@ export function SessionOverviewPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
       </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Failed to load session stats</AlertTitle>
+        <AlertDescription>Check the connection and retry.</AlertDescription>
+      </Alert>
     );
   }
 

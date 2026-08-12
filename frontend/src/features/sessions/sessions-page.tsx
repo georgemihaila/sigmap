@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Alert, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useIsOperator } from '@/hooks/useUser';
 import { formatDateTime } from '@/lib/time';
 import type { Session } from '@/lib/domain';
@@ -90,7 +90,7 @@ function SessionForm({
 }
 
 export function SessionsPage() {
-  const { data: sessions, isLoading } = useListSessionsQuery();
+  const { data: sessions, isLoading, isError } = useListSessionsQuery();
   const [createSession] = useCreateSessionMutation();
   const [updateSession] = useUpdateSessionMutation();
   const [archiveSession] = useArchiveSessionMutation();
@@ -127,6 +127,13 @@ export function SessionsPage() {
         }
       />
 
+      {isError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Failed to load sessions</AlertTitle>
+          <AlertDescription>Check the connection and retry.</AlertDescription>
+        </Alert>
+      ) : null}
+
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -144,6 +151,13 @@ export function SessionsPage() {
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-sm text-foreground/60">
                     Loading…
+                  </TableCell>
+                </TableRow>
+              ) : null}
+              {sessions?.length === 0 && !isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-sm text-foreground/60">
+                    No sessions yet — create one to get started.
                   </TableCell>
                 </TableRow>
               ) : null}

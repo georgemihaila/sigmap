@@ -6,6 +6,7 @@ import { useListSessionsQuery } from '@/api/sessionsApi';
 import { useListPendingPairingsQuery, useApprovePairingMutation, useRejectPairingMutation, useGetPairingQrQuery } from '@/api/pairingApi';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +19,7 @@ import { timeAgo } from '@/lib/time';
 
 export function PairingPage() {
   const { data: sessions } = useListSessionsQuery();
-  const { data: pending, isLoading } = useListPendingPairingsQuery();
+  const { data: pending, isLoading, isError } = useListPendingPairingsQuery();
   const [approve] = useApprovePairingMutation();
   const [reject] = useRejectPairingMutation();
   const isOperator = useIsOperator();
@@ -35,6 +36,13 @@ export function PairingPage() {
         title="Pairing"
         description="Pair new scanner devices with a QR code and approve join requests."
       />
+
+      {isError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Failed to load pairing requests</AlertTitle>
+          <AlertDescription>Check the connection and retry.</AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>

@@ -5,6 +5,7 @@ import { useListPresetsQuery } from '@/api/presetsApi';
 import { useSessionId } from '@/features/sessions/session-context';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,7 +19,7 @@ import type { FleetDevice } from '@/lib/domain';
 export function FleetPage() {
   const sessionId = useSessionId() ?? '';
   const isOperator = useIsOperator();
-  const { data: fleet, isLoading } = useListSessionFleetQuery(sessionId, {
+  const { data: fleet, isLoading, isError } = useListSessionFleetQuery(sessionId, {
     skip: !sessionId,
     pollingInterval: 5000,
   });
@@ -59,6 +60,13 @@ export function FleetPage() {
         }
       />
 
+      {isError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Failed to load fleet</AlertTitle>
+          <AlertDescription>Check the connection and retry.</AlertDescription>
+        </Alert>
+      ) : null}
+
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -92,7 +100,11 @@ export function FleetPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {f.drift ? (
+                    {f.config?.pushState === 'failed' ? (
+                      <Badge className="bg-red-400 text-red-950">
+                        <AlertTriangle className="size-3" /> push failed
+                      </Badge>
+                    ) : f.drift ? (
                       <Badge className="bg-amber-400 text-amber-950">
                         <AlertTriangle className="size-3" /> not acked
                       </Badge>

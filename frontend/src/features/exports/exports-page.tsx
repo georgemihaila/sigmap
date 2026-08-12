@@ -5,6 +5,7 @@ import { useListSessionsQuery } from '@/api/sessionsApi';
 import { useListExportsQuery, useCreateExportMutation, useLazyDownloadExportQuery, useUploadWigleMutation, useImportWigleMutation, useGetWigleSettingsQuery, usePutWigleSettingsMutation, type ExportInput } from '@/api/exportsApi';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,7 +24,7 @@ const FORMATS: Array<{ value: ExportFormat; label: string; hint: string }> = [
 
 export function ExportsPage() {
   const { data: sessions } = useListSessionsQuery();
-  const { data: exports, isLoading } = useListExportsQuery(undefined, { pollingInterval: 3000 });
+  const { data: exports, isLoading, isError } = useListExportsQuery(undefined, { pollingInterval: 3000 });
   const [createExport] = useCreateExportMutation();
   const [download] = useLazyDownloadExportQuery();
   const [uploadWigle] = useUploadWigleMutation();
@@ -86,6 +87,13 @@ export function ExportsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Export Center" description="WiGLE, CSV and GeoJSON exports, plus WiGLE.net integration." />
+
+      {isError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Failed to load exports</AlertTitle>
+          <AlertDescription>Check the connection and retry.</AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card>

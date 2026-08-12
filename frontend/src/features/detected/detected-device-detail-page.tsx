@@ -4,6 +4,7 @@ import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
 import { useGetDetectedDeviceQuery, useGetSignalSeriesQuery } from '@/api/detectedApi';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +20,7 @@ const chartConfig: ChartConfig = {
 export function DetectedDeviceDetailPage() {
   const { mac = '' } = useParams();
   const decoded = decodeURIComponent(mac);
-  const { data: device, isLoading } = useGetDetectedDeviceQuery(decoded);
+  const { data: device, isLoading, isError } = useGetDetectedDeviceQuery(decoded);
   const { data: series } = useGetSignalSeriesQuery(decoded);
 
   if (isLoading) {
@@ -27,6 +28,18 @@ export function DetectedDeviceDetailPage() {
       <div className="flex flex-col gap-4">
         <Skeleton className="h-10 w-72" />
         <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col gap-4">
+        <Button variant="neutral" asChild className="self-start"><Link to="/detected"><ArrowLeft /> Back</Link></Button>
+        <Alert variant="destructive">
+          <AlertTitle>Failed to load device</AlertTitle>
+          <AlertDescription>Check the connection and retry.</AlertDescription>
+        </Alert>
       </div>
     );
   }

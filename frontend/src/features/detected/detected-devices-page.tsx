@@ -4,11 +4,13 @@ import { ChevronDown } from 'lucide-react';
 import { useListDetectedDevicesQuery, type DetectedQuery } from '@/api/detectedApi';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatDateTime, formatNumber } from '@/lib/time';
 import type { DeviceType } from '@/lib/domain';
@@ -27,7 +29,7 @@ export function DetectedDevicesPage() {
     deviceType: deviceType === 'ALL' ? null : deviceType,
     search: search.trim() || null,
   };
-  const { data, isFetching } = useListDetectedDevicesQuery(args);
+  const { data, isLoading, isError, isFetching } = useListDetectedDevicesQuery(args);
 
   const changeFilters = (fn: () => void) => {
     fn();
@@ -61,6 +63,13 @@ export function DetectedDevicesPage() {
         <Badge variant="neutral" className="ml-auto">{formatNumber(data?.count ?? 0)} total</Badge>
       </div>
 
+      {isError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Failed to load detected devices</AlertTitle>
+          <AlertDescription>Check the connection and retry.</AlertDescription>
+        </Alert>
+      ) : null}
+
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -75,6 +84,13 @@ export function DetectedDevicesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <TableRow key={`loading-${i}`}>
+                    <TableCell colSpan={6}><Skeleton className="h-6 w-full" /></TableCell>
+                  </TableRow>
+                ))
+              ) : null}
               {data?.items.map((d) => (
                 <TableRow
                   key={d.id}

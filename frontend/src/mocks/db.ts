@@ -498,7 +498,7 @@ export function fleetDeviceFor(device: Device, sessionId?: string): FleetDevice 
     swarmId: membership?.swarmId ?? null,
     swarmName: swarm?.name ?? null,
     role: membership?.role ?? null,
-    drift: config?.pushState === 'pending',
+    drift: config != null && config.pushState !== 'acked',
     presetId: config?.presetId ?? null,
     presetName: preset?.name ?? null,
     config,
@@ -622,10 +622,12 @@ export function listDetectedDevices(q: DetectedQuery): DetectedDevicePage {
   }
   const limit = q.limit ?? 50;
   const page = sorted.slice(start, start + limit);
-  const next = page.length === limit ? sorted[start + limit] : undefined;
+  // The cursor encodes the LAST row of this page: the next page starts strictly
+  // after it, so no row falls through a page boundary.
+  const last = page.length === limit ? sorted[start + limit - 1] : undefined;
   return {
     items: page,
-    nextCursor: next ? encodeCursor(next.lastSeenAt, next.id) : null,
+    nextCursor: last ? encodeCursor(last.lastSeenAt, last.id) : null,
     count: sorted.length,
   };
 }

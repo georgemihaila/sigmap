@@ -5,6 +5,7 @@ import { useListPresetsQuery, useCreatePresetMutation, useUpdatePresetMutation, 
 import { useListSessionsQuery } from '@/api/sessionsApi';
 import { PageHeader } from '@/components/page-header';
 import { ConfigEditor } from '@/components/config-editor';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,7 +63,7 @@ function PresetForm({
 }
 
 export function PresetsPage() {
-  const { data: presets, isLoading } = useListPresetsQuery();
+  const { data: presets, isLoading, isError } = useListPresetsQuery();
   const { data: sessions } = useListSessionsQuery();
   const [createPreset] = useCreatePresetMutation();
   const [updatePreset] = useUpdatePresetMutation();
@@ -128,10 +129,21 @@ export function PresetsPage() {
         }
       />
 
+      {isError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Failed to load presets</AlertTitle>
+          <AlertDescription>Check the connection and retry.</AlertDescription>
+        </Alert>
+      ) : null}
+
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-44" />)}
         </div>
+      ) : null}
+
+      {presets?.length === 0 && !isLoading && !isError ? (
+        <p className="text-sm text-foreground/60">No presets yet — create one to get started.</p>
       ) : null}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -229,29 +241,30 @@ export function PresetsPage() {
               <Accordion type="multiple" className="flex flex-col gap-2">
                 {preview.map((diff: ConfigDiff) => (
                   <AccordionItem key={diff.deviceId} value={diff.deviceId} className="border-2 border-border rounded-base bg-secondary-background px-3">
-                    <AccordionTrigger className="py-3">
-                      <span className="flex items-center gap-2">
-                        <Checkbox
-                          checked={selected.has(diff.deviceId)}
-                          onCheckedChange={(v: boolean) => {
-                            setSelected((prev) => {
-                              const next = new Set(prev);
-                              if (v) next.add(diff.deviceId);
-                              else next.delete(diff.deviceId);
-                              return next;
-                            });
-                          }}
-                          onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                          aria-label={`Select ${diff.deviceName}`}
-                        />
-                        <span className="font-base">{diff.deviceName}</span>
-                        {diff.equal ? (
-                          <Badge className="bg-emerald-400 text-emerald-950"><CheckCircle2 className="size-3" /> in sync</Badge>
-                        ) : (
-                          <Badge className="bg-amber-400 text-amber-950">{diff.changes.length} change(s)</Badge>
-                        )}
-                      </span>
-                    </AccordionTrigger>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={selected.has(diff.deviceId)}
+                        onCheckedChange={(v: boolean) => {
+                          setSelected((prev) => {
+                            const next = new Set(prev);
+                            if (v) next.add(diff.deviceId);
+                            else next.delete(diff.deviceId);
+                            return next;
+                          });
+                        }}
+                        aria-label={`Select ${diff.deviceName}`}
+                      />
+                      <AccordionTrigger className="flex-1 py-3">
+                        <span className="flex items-center gap-2">
+                          <span className="font-base">{diff.deviceName}</span>
+                          {diff.equal ? (
+                            <Badge className="bg-emerald-400 text-emerald-950"><CheckCircle2 className="size-3" /> in sync</Badge>
+                          ) : (
+                            <Badge className="bg-amber-400 text-amber-950">{diff.changes.length} change(s)</Badge>
+                          )}
+                        </span>
+                      </AccordionTrigger>
+                    </div>
                     <AccordionContent>
                       {diff.equal ? (
                         <p className="text-sm text-foreground/60">Config already matches — no changes.</p>
