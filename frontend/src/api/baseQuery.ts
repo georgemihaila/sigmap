@@ -1,12 +1,10 @@
 import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 /**
- * The mock/real backend seam. Everything in the app talks to this baseUrl.
+ * The backend seam. Everything in the app talks to this baseUrl.
  *
- * - Mock mode (MSW): the service worker intercepts requests at the network
- *   level, so any baseUrl works — the default `/api` keeps URLs same-origin.
- * - Real mode: set `VITE_API_BASE_URL` (or run the Vite proxy) and the whole
- *   app points at the BFF. No other code changes.
+ * Default is same-origin `/api`, proxied to the backend by Vite in dev. Set
+ * `VITE_API_BASE_URL` to point the whole app at another backend.
  */
 export const API_BASE_URL = ((): string => {
   const configured = import.meta.env.VITE_API_BASE_URL as string | undefined;

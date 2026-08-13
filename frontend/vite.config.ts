@@ -4,9 +4,8 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vitest/config';
 
-// When not running against the MSW mock layer (VITE_ENABLE_MOCKS=false), REST
-// and the live gRPC-Web stream are proxied to the BFF. Swap the target to point
-// at the real backend without touching app code.
+// REST and the live gRPC-Web stream are proxied to the backend. Swap the target
+// to point at another backend without touching app code.
 const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://localhost:5090';
 
 export default defineConfig({
@@ -17,7 +16,7 @@ export default defineConfig({
     },
   },
   server: {
-    host: true,
+    host: '127.0.0.1',
     port: 5173,
     proxy: {
       '/api': { target: proxyTarget, changeOrigin: true },
