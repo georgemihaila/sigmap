@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Sigmap.Api/Sigmap.Api.csproj" />
+    <Project Path="src/Sigmap.Application/Sigmap.Application.csproj" />
+    <Project Path="src/Sigmap.Domain/Sigmap.Domain.csproj" />
+    <Project Path="src/Sigmap.Infrastructure/Sigmap.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Sigmap.Api.IntegrationTests/Sigmap.Api.IntegrationTests.csproj" />
+    <Project Path="tests/Sigmap.Domain.Tests/Sigmap.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

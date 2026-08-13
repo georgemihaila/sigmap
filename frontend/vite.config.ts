@@ -21,7 +21,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': { target: proxyTarget, changeOrigin: true },
-      '/LiveStream': { target: proxyTarget, changeOrigin: true },
+      // gRPC-Web live stream (route is the lowercase package-qualified method).
+      '/sigmap.live.v1.LiveStream': { target: proxyTarget, changeOrigin: true },
     },
   },
   build: {

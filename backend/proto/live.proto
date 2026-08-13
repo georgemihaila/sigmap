@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package sigmap.live.v1;
+
+option csharp_namespace = "Sigmap.Api.Live";
+
+// Server-streaming live feed. Mirrors the frontend `LiveEvent` oneof
+// (src/lib/domain.ts) 1:1 so the browser can stream it with zero reshaping.
+service LiveStream {
+  rpc Subscribe(SubscribeRequest) returns (stream LiveEvent);
+}
+
+message SubscribeRequest {
+  string session_id = 1;
+}
+
+message LiveEvent {
+  string session_id = 1;
+  oneof payload {
+    DetectionBatch detections = 2;
+    Heartbeat device = 3;
+    ConfigPush config = 4;
+    FleetSnapshot fleet = 5;
+  }
+}
+
+message DetectionBatch {
+  string batch_id = 1;
+  string device_id = 2;
+  repeated LocatedDetection detections = 3;
+}
+
+message LocatedDetection {
+  string mac = 1;
+  string device_type = 2;
+  optional string ssid = 3;
+  optional string bt_name = 4;
+  int32 signal_dbm = 5;
+  int32 channel = 6;
+  string encryption = 7;
+  string detected_at = 8;
+  string location_flag = 9;
+  optional double lat = 10;
+  optional double lon = 11;
+  optional string vendor_name = 12;
+}
+
+message Heartbeat {
+  string device_id = 1;
+  string at = 2;
+  string status = 3;
+  optional int32 current_channel = 4;
+  optional int32 battery_pct = 5;
+  bool gps_fix = 6;
+  int32 detections_buffered = 7;
+  int32 detections_sent_total = 8;
+}
+
+message ConfigPush {
+  string device_id = 1;
+  string push_id = 2;
+  string status = 3;
+}
+
+message FleetSnapshot {
+  repeated Heartbeat devices = 1;
+}

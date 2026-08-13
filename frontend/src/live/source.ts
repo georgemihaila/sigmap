@@ -1,15 +1,17 @@
 import type { LiveEvent } from '@/lib/domain';
 import type { LiveSessionState } from '@/lib/domain';
 import { MockLiveStreamSource } from '@/mocks/liveSource';
+import { GrpcWebLiveStreamSource } from './grpcWebSource';
 
 /**
  * Live-update seam. The browser app consumes a stream of `LiveEvent`s shaped
  * like the BFF's gRPC-Web `LiveStream.Subscribe` oneof.
  *
- * The mock implementation (an interval emitter over the MSW fixture db) lives
- * in `@/mocks/liveSource`. Swapping in the real transport later means replacing
- * the implementation returned by `createLiveStreamSource` — component code and
- * the RTK cache wiring never change.
+ * - Mock mode (MSW, the dev default): the interval emitter over the fixture db
+ *   keeps working with no backend.
+ * - Real mode (`VITE_ENABLE_MOCKS=false`): gRPC-Web server-stream from the
+ *   ASP.NET backend, proxied by Vite. Component code and the RTK cache wiring
+ *   never change.
  */
 export interface LiveStreamSource {
   subscribe(sessionId: string, listener: (event: LiveEvent) => void): () => void;
@@ -17,9 +19,9 @@ export interface LiveStreamSource {
 }
 
 export function createLiveStreamSource(): LiveStreamSource {
-  // The mock emitter reads from the MSW fixture db. Swapping in the real
-  // gRPC-Web transport later = replacing this one line + the source class.
-  return new MockLiveStreamSource();
+  return import.meta.env.VITE_ENABLE_MOCKS !== 'false'
+    ? new MockLiveStreamSource()
+    : new GrpcWebLiveStreamSource();
 }
 
 const MAX_UNLOCATED = 20;

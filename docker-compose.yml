@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sigmap-db
+    environment:
+      POSTGRES_USER: sigmap
+      POSTGRES_PASSWORD: sigmap
+      POSTGRES_DB: sigmap
+    ports:
+      - "5432:5432"
+    volumes:
+      - sigmap-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sigmap -d sigmap"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: sigmap-api
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      # .NET's DNS resolver can EAGAIN on IPv6 in Docker; force IPv4 lookups.
+      DOTNET_SYSTEM_NET_DISABLEIPV6: "1"
+      ConnectionStrings__Default: Host=db;Port=5432;Database=sigmap;Username=sigmap;Password=sigmap
+    ports:
+      - "5090:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - sigmap-exports:/app/exports
+
+volumes:
+  sigmap-pgdata:
+  sigmap-exports:
