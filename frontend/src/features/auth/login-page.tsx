@@ -3,16 +3,40 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useGetMeQuery, useLoginMutation } from '@/api/authApi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert } from '@/components/ui/alert';
 import { Radar } from 'lucide-react';
 
+const REMEMBER_CREDENTIALS_KEY = 'sigmap.remembered-credentials';
+
+type RememberedCredentials = { username: string; password: string };
+
+function loadRememberedCredentials(): RememberedCredentials | null {
+  try {
+    const raw = localStorage.getItem(REMEMBER_CREDENTIALS_KEY);
+    return raw ? (JSON.parse(raw) as RememberedCredentials) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveRememberedCredentials(username: string, password: string) {
+  localStorage.setItem(REMEMBER_CREDENTIALS_KEY, JSON.stringify({ username, password }));
+}
+
+function clearRememberedCredentials() {
+  localStorage.removeItem(REMEMBER_CREDENTIALS_KEY);
+}
+
 export function LoginPage() {
   const { data: user } = useGetMeQuery();
   const [login, { isLoading, isError }] = useLoginMutation();
-  const [username, setUsername] = useState('operator');
-  const [password, setPassword] = useState('sigmap-dev');
+  const [remembered] = useState(loadRememberedCredentials);
+  const [username, setUsername] = useState(remembered?.username ?? 'operator');
+  const [password, setPassword] = useState(remembered?.password ?? 'sigmap-dev');
+  const [rememberMe, setRememberMe] = useState(!!remembered);
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? '/';
@@ -23,6 +47,11 @@ export function LoginPage() {
     e.preventDefault();
     try {
       await login({ username, password }).unwrap();
+      if (rememberMe) {
+        saveRememberedCredentials(username, password);
+      } else {
+        clearRememberedCredentials();
+      }
       navigate(from, { replace: true });
     } catch {
       // handled by isError
@@ -49,6 +78,10 @@ export function LoginPage() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
             </div>
+            <Label className="flex items-center gap-2 font-base" htmlFor="remember-me">
+              <Checkbox id="remember-me" checked={rememberMe} onCheckedChange={(checked) => setRememberMe(checked === true)} />
+              Remember me
+            </Label>
             {isError ? (
               <Alert variant="destructive">Invalid credentials.</Alert>
             ) : null}

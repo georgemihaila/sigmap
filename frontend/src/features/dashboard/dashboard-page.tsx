@@ -1,21 +1,28 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Radio, ShieldCheck, WifiOff, TriangleAlert, Clock } from 'lucide-react';
+import { ArrowRight, MapPinned, Radio, ShieldCheck, WifiOff, TriangleAlert, Clock } from 'lucide-react';
 import { useListSessionsQuery } from '@/api/sessionsApi';
 import { useListFleetQuery } from '@/api/fleetApi';
-import { useListDetectedDevicesQuery } from '@/api/detectedApi';
+import { useListDetectedDevicesQuery, useListMapDetectedDevicesQuery } from '@/api/detectedApi';
+import { useListPendingPairingsQuery } from '@/api/pairingApi';
+import { DashboardMap, type DashboardMapMode } from '@/components/dashboard-map';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { timeAgo } from '@/lib/time';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatNumber, timeAgo } from '@/lib/time';
 import { cn } from '@/lib/utils';
 
 export function DashboardPage() {
   const { data: sessions, isError: sessionsError } = useListSessionsQuery();
   const { data: fleet, isError: fleetError } = useListFleetQuery();
   const { data: recent, isError: recentError } = useListDetectedDevicesQuery({ limit: 8 });
+  const { data: pendingPairings } = useListPendingPairingsQuery();
+  const { data: mapDevices, isLoading: mapLoading } = useListMapDetectedDevicesQuery();
+  const [mapMode, setMapMode] = useState<DashboardMapMode>('heatmap');
 
   const active = sessions?.filter((s) => s.status === 'active') ?? [];
   const planned = sessions?.filter((s) => s.status === 'planned') ?? [];
@@ -23,7 +30,7 @@ export function DashboardPage() {
   const online = fleet?.filter((f) => f.device.status === 'online').length ?? 0;
   const offline = fleet?.filter((f) => f.device.status === 'offline').length ?? 0;
   const errors = fleet?.filter((f) => f.device.status === 'error').length ?? 0;
-  const pending = fleet?.filter((f) => f.device.status === 'pending').length ?? 0;
+  const pending = pendingPairings?.length ?? 0;
   const drift = fleet?.filter((f) => f.drift).length ?? 0;
 
   const stats = [
@@ -63,6 +70,42 @@ export function DashboardPage() {
           );
         })}
       </div>
+
+      <Card>
+        <CardHeader className="flex-row items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-sm"><MapPinned className="size-4" /> Detection map</CardTitle>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-foreground/60">{formatNumber(mapDevices?.length ?? 0)} located devices</span>
+            <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant={mapMode === 'heatmap' ? 'default' : 'noShadow'}
+                className={cn(mapMode !== 'heatmap' && 'bg-transparent text-foreground shadow-none hover:bg-main')}
+                onClick={() => setMapMode('heatmap')}
+              >
+                Heatmap
+              </Button>
+              <Button
+                size="sm"
+                variant={mapMode === 'devices' ? 'default' : 'noShadow'}
+                className={cn(mapMode !== 'devices' && 'bg-transparent text-foreground shadow-none hover:bg-main')}
+                onClick={() => setMapMode('devices')}
+              >
+                Devices
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="h-[60vh]">
+            {mapLoading || !mapDevices ? (
+              <Skeleton className="h-full w-full" />
+            ) : (
+              <DashboardMap devices={mapDevices} mode={mapMode} />
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">

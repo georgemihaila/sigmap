@@ -281,7 +281,6 @@ export interface PairingRequest {
 }
 
 export interface PairingQr {
-  sessionId: string;
   token: string;
   payload: string;
 }

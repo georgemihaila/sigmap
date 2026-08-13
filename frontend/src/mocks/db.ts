@@ -2,7 +2,7 @@ import type {
   ConfigPushResult, Coverage, DetectedDevice, DetectionSource,
   DetectedDevicePage, Device, DeviceConfigDto, DeviceType, Encryption, ExportFormat,
   ExportRecord, ExportStatus, FleetDevice, Heartbeat, LiveSessionState, LocationFlag,
-  PairingRequest, ScanPreset, Session, SessionStats, SignalPoint, Swarm, User,
+  PairingQr, PairingRequest, ScanPreset, Session, SessionStats, SignalPoint, Swarm, User,
   WigleSettings,
 } from '@/lib/domain';
 import { encodeCursor, keyIsBefore } from '@/lib/cursor';
@@ -54,6 +54,7 @@ export interface MockDb {
   detections: DetectionRow[];
   exports: ExportRecord[];
   pairings: PairingRequest[];
+  pairingCode: PairingQr | null;
   wigleSettings: WigleSettings;
   rng: () => number;
   nextDetectionId: number;
@@ -158,6 +159,7 @@ export function generateDb(seed = 20260812): MockDb {
     detections: [],
     exports: [],
     pairings: [],
+    pairingCode: null,
     wigleSettings: { apiName: 'wigle.net', apiKeySet: false, username: null, passwordSet: false },
     rng,
     nextDetectionId: 1,
@@ -178,13 +180,13 @@ export function generateDb(seed = 20260812): MockDb {
   // Fleet devices
   const platforms = ['linux-x64', 'linux-arm64', 'raspberry-pi', 'android-14', 'android-13'];
   const statuses: Device['status'][] = ['online', 'online', 'online', 'offline', 'error'];
-  db.devices = FLEET_NAMES.map((name, i) => ({
+  db.devices = FLEET_NAMES.map((name) => ({
     id: uuid(rng),
     name,
     platform: pick(rng, platforms),
     capabilities: randomCapabilities(rng, pick(rng, platforms)),
-    status: i < 3 ? 'pending' : pick(rng, statuses),
-    lastHeartbeatAt: i < 3 ? null : msAgo(randomInt(rng, 0, 45)),
+    status: pick(rng, statuses),
+    lastHeartbeatAt: msAgo(randomInt(rng, 0, 45)),
     lastKnownIp: `10.10.${randomInt(rng, 1, 9)}.${randomInt(rng, 2, 254)}`,
     pairedAt: msAgo(randomInt(rng, 1000, 30000)),
   }));
@@ -583,6 +585,74 @@ export function presetById(id: string): ScanPreset | undefined {
 }
 
 // ---------------------------------------------------------------------------
+// Pairing (permanent, platform-level)
+// ---------------------------------------------------------------------------
+
+export function pairingCode(): PairingQr {
+  if (!state.pairingCode) {
+    const token = uuid(state.rng).replace(/-/g, '').slice(0, 8);
+    const backend = typeof window !== 'undefined' && window.location?.origin
+      ? `${window.location.origin}/api`
+      : 'sigmap.local';
+    state.pairingCode = { token, payload: `sigmap-pair://?host=${encodeURIComponent(backend)}&token=${token}` };
+  }
+  return state.pairingCode;
+}
+
+/**
+ * Admit a device to the fleet. Pairing is permanent: the device becomes a fleet
+ * member regardless of the (optional) session assignment.
+ */
+export function approvePairing(deviceId: string, sessionId: string | null): PairingRequest | null {
+  const pairing = state.pairings.find((p) => p.deviceId === deviceId);
+  if (!pairing) return null;
+  pairing.status = 'approved';
+  pairing.sessionId = sessionId;
+
+  let device = state.devices.find((d) => d.id === deviceId);
+  if (!device) {
+    device = {
+      id: deviceId,
+      name: pairing.deviceName,
+      platform: pairing.platform,
+      capabilities: pairing.capabilities,
+      status: 'offline',
+      lastHeartbeatAt: null,
+      lastKnownIp: null,
+      pairedAt: new Date().toISOString(),
+    };
+    state.devices.push(device);
+  }
+  device.status = 'offline';
+  device.pairedAt = new Date().toISOString();
+
+  if (sessionId) {
+    const already = state.sessionDevices.some(
+      (sd) => sd.sessionId === sessionId && sd.deviceId === deviceId,
+    );
+    if (!already) {
+      const swarm = state.swarms.find((w) => w.sessionId === sessionId) ?? null;
+      state.sessionDevices.push({
+        sessionId,
+        deviceId,
+        swarmId: swarm?.id ?? null,
+        role: 'scout',
+        joinedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  return pairing;
+}
+
+export function rejectPairing(deviceId: string): PairingRequest | null {
+  const pairing = state.pairings.find((p) => p.deviceId === deviceId);
+  if (!pairing) return null;
+  pairing.status = 'rejected';
+  return pairing;
+}
+
+// ---------------------------------------------------------------------------
 // Detected devices / detections
 // ---------------------------------------------------------------------------
 
@@ -634,6 +704,10 @@ export function listDetectedDevices(q: DetectedQuery): DetectedDevicePage {
 
 export function detectedDeviceByMac(mac: string): DetectedDevice | undefined {
   return state.detectedDevices.find((d) => d.macNormalized === normalizeMac(mac));
+}
+
+export function locatedDetectedDevices(): DetectedDevice[] {
+  return state.detectedDevices.filter((d) => d.latitude != null && d.longitude != null);
 }
 
 export function signalSeries(mac: string): SignalPoint[] {

@@ -35,6 +35,7 @@ describe('RTK Query seam', () => {
     const devices = await store
       .dispatch(endpoints.listDetectedDevices.initiate({ limit: 3 }))
       .unwrap();
+    const mapDevices = await store.dispatch(endpoints.listMapDetectedDevices.initiate(undefined)).unwrap();
 
     // Documented contract shapes survive the round trip.
     expect(Array.isArray(sessions)).toBe(true);
@@ -50,6 +51,12 @@ describe('RTK Query seam', () => {
       deviceType: expect.any(String),
       lastSeenAt: expect.any(String),
     });
+    expect(mapDevices.length).toBeGreaterThan(0);
+    expect(mapDevices[0]).toMatchObject({
+      mac: expect.stringMatching(/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/),
+      latitude: expect.any(Number),
+      longitude: expect.any(Number),
+    });
 
     // The requested URLs are composed from the relative path + the shared
     // baseUrl — never from a hard-coded origin.
@@ -59,6 +66,7 @@ describe('RTK Query seam', () => {
     });
     expect(urls.some((u) => u.includes('/api/sessions'))).toBe(true);
     expect(urls.some((u) => u.includes('/api/detected-devices') && u.includes('limit=3'))).toBe(true);
+    expect(urls.some((u) => u.includes('/api/detected-devices/map'))).toBe(true);
     expect(urls.every((u) => !u.includes('bff.example'))).toBe(true);
 
     fetchSpy.mockRestore();

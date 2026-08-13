@@ -244,6 +244,25 @@ export function PresetsPage() {
             {previewing ? <Skeleton className="h-24 w-full" /> : null}
 
             {preview && !previewing ? (
+              <div className="flex items-center justify-between gap-2 rounded-base border-2 border-border bg-secondary-background px-3 py-2">
+                <Label className="font-base">Select all devices</Label>
+                <Checkbox
+                  checked={
+                    preview.length > 0 && selected.size === preview.length
+                      ? true
+                      : selected.size > 0
+                        ? 'indeterminate'
+                        : false
+                  }
+                  onCheckedChange={(v: boolean) => {
+                    setSelected(v ? new Set(preview.map((d) => d.deviceId)) : new Set());
+                  }}
+                  aria-label="Select all devices"
+                />
+              </div>
+            ) : null}
+
+            {preview && !previewing ? (
               <Accordion type="multiple" className="flex flex-col gap-2">
                 {preview.map((diff: ConfigDiff) => (
                   <AccordionItem key={diff.deviceId} value={diff.deviceId} className="border-2 border-border rounded-base bg-secondary-background px-3">

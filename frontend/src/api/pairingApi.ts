@@ -7,11 +7,11 @@ export const pairingApi = api.injectEndpoints({
       query: () => ({ url: '/pairing/pending' }),
       providesTags: ['Pairing'],
     }),
-    approvePairing: builder.mutation<void, { deviceId: string; sessionId: string }>({
+    approvePairing: builder.mutation<void, { deviceId: string; sessionId?: string | null }>({
       query: ({ deviceId, sessionId }) => ({
         url: `/pairing/${deviceId}/approve`,
         method: 'POST',
-        body: { sessionId },
+        body: { sessionId: sessionId ?? null },
       }),
       invalidatesTags: ['Pairing', 'Fleet'],
     }),
@@ -19,8 +19,8 @@ export const pairingApi = api.injectEndpoints({
       query: (deviceId) => ({ url: `/pairing/${deviceId}/reject`, method: 'POST' }),
       invalidatesTags: ['Pairing'],
     }),
-    getPairingQr: builder.query<PairingQr, string>({
-      query: (sessionId) => ({ url: `/pairing/qr/${sessionId}` }),
+    getPairingQr: builder.query<PairingQr, void>({
+      query: () => ({ url: '/pairing/qr' }),
     }),
   }),
 });

@@ -3,9 +3,9 @@ import { http, HttpResponse } from 'msw';
 import type { ConfigDiff, ExportFormat, ExportRecord } from '@/lib/domain';
 import { parseScanConfig, diffScanConfigs, stringifyScanConfig, mergeInterfaces } from '@/lib/scanConfig';
 import {
-  applyConfigToDevice, applyConfigToMany, authUser, deviceConfig, detectedDeviceByMac,
-  getDb, listDetectedDevices, listFleet, liveSnapshot, login, presetById,
-  sessionById, sessionCoverage, sessionStats, setAuthUser, signalSeries,
+  applyConfigToDevice, applyConfigToMany, approvePairing, authUser, deviceConfig, detectedDeviceByMac,
+  getDb, listDetectedDevices, listFleet, liveSnapshot, locatedDetectedDevices, login, pairingCode, presetById,
+  rejectPairing, sessionById, sessionCoverage, sessionStats, setAuthUser, signalSeries,
 } from './db';
 
 const JSON401 = () => HttpResponse.json({ error: 'unauthorized' }, { status: 401 });
@@ -283,6 +283,10 @@ export const handlers = [
     });
     return HttpResponse.json(page);
   }),
+  http.get('/api/detected-devices/map', () => {
+    if (!requireAuth()) return JSON401();
+    return HttpResponse.json(locatedDetectedDevices());
+  }),
   http.get('/api/devices/detected/:mac/signal-series', ({ params }) => {
     if (!requireAuth()) return JSON401();
     return HttpResponse.json(signalSeries(String(params.mac)));
@@ -379,31 +383,19 @@ export const handlers = [
   }),
   http.post('/api/pairing/:deviceId/approve', async ({ params, request }) => {
     if (!requireAuth()) return JSON401();
-    const db = getDb();
-    const pairing = db.pairings.find((p) => p.deviceId === String(params.deviceId));
+    const body = (await request.json()) as { sessionId?: string | null };
+    const pairing = approvePairing(String(params.deviceId), body.sessionId ?? null);
     if (!pairing) return HttpResponse.json({ error: 'not_found' }, { status: 404 });
-    const body = (await request.json()) as { sessionId?: string };
-    pairing.status = 'approved';
-    pairing.sessionId = body.sessionId ?? null;
     return new HttpResponse(null, { status: 204 });
   }),
   http.post('/api/pairing/:deviceId/reject', ({ params }) => {
     if (!requireAuth()) return JSON401();
-    const db = getDb();
-    const pairing = db.pairings.find((p) => p.deviceId === String(params.deviceId));
+    const pairing = rejectPairing(String(params.deviceId));
     if (!pairing) return HttpResponse.json({ error: 'not_found' }, { status: 404 });
-    pairing.status = 'rejected';
     return new HttpResponse(null, { status: 204 });
   }),
-  http.get('/api/pairing/qr/:sessionId', ({ params }) => {
+  http.get('/api/pairing/qr', () => {
     if (!requireAuth()) return JSON401();
-    const session = sessionById(String(params.sessionId));
-    if (!session) return HttpResponse.json({ error: 'not_found' }, { status: 404 });
-    const token = crypto.randomUUID().replace(/-/g, '').slice(0, 8);
-    return HttpResponse.json({
-      sessionId: session.id,
-      token,
-      payload: `sigmap-pair://${session.id}?token=${token}`,
-    });
+    return HttpResponse.json(pairingCode());
   }),
 ];

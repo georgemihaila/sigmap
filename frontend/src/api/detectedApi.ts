@@ -40,11 +40,15 @@ export const detectedApi = api.injectEndpoints({
     getDetectedDevice: builder.query<DetectedDevice, string>({
       query: (mac) => ({ url: `/devices/detected/${encodeURIComponent(mac)}` }),
     }),
+    listMapDetectedDevices: builder.query<DetectedDevice[], void>({
+      query: () => ({ url: '/detected-devices/map' }),
+      providesTags: ['Detected'],
+    }),
     getSignalSeries: builder.query<SignalPoint[], string>({
       query: (mac) => ({ url: `/devices/detected/${encodeURIComponent(mac)}/signal-series` }),
     }),
   }),
 });
 
-export const { useListDetectedDevicesQuery, useGetDetectedDeviceQuery, useGetSignalSeriesQuery } =
+export const { useListDetectedDevicesQuery, useGetDetectedDeviceQuery, useListMapDetectedDevicesQuery, useGetSignalSeriesQuery } =
   detectedApi;
